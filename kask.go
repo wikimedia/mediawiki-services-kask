@@ -1,30 +1,59 @@
 package main
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path"
+	"strconv"
 	"strings"
 )
 
 const root string = "/sessions/v1/"
 
-func getHandler(w http.ResponseWriter, r *http.Request, key string) {
+func Getenv(name string, fallback string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	} else {
+		return value
+	}
+}
+
+func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+	value, err := store.Get(key)
+	if err != nil {
+		log.Printf("Error reading key (%s)", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write([]byte(fmt.Sprintf("Hello %s!", key)))
+	w.Write(value)
 }
 
-func postHandler(w http.ResponseWriter, r *http.Request, key string) {
+func postHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	if err := store.Set(key, body); err != nil {
+		log.Printf("Error setting value (%s)", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+}
+
+func putHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
 	log.Println(key)
 }
 
-func putHandler(w http.ResponseWriter, r *http.Request, key string) {
-	log.Println(key)
-}
-
-func deleteHandler(w http.ResponseWriter, r *http.Request, key string) {
+func deleteHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
 	log.Println(key)
 }
 
@@ -38,28 +67,45 @@ func parseKey(url string) (string, error) {
 	return path.Base(url), nil
 }
 
-func dispatch(w http.ResponseWriter, r *http.Request) {
-	key, err := parseKey(r.URL.Path)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
+func dispatch(s *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		key, err := parseKey(r.URL.Path)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
 
-	switch r.Method {
-	case http.MethodGet:
-		getHandler(w, r, key)
-	case http.MethodPost:
-		postHandler(w, r, key)
-	case http.MethodPut:
-		putHandler(w, r, key)
-	case http.MethodDelete:
-		deleteHandler(w, r, key)
-	default:
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		switch r.Method {
+		case http.MethodGet:
+			getHandler(w, r, s, key)
+		case http.MethodPost:
+			postHandler(w, r, s, key)
+		case http.MethodPut:
+			putHandler(w, r, s, key)
+		case http.MethodDelete:
+			deleteHandler(w, r, s, key)
+		default:
+			http.Error(w, "Bad request", http.StatusBadRequest)
+		}
 	}
 }
 
 func main() {
-	http.HandleFunc(root, dispatch)
+	hostname := Getenv("CASSANDRA_HOST", "localhost")
+	port := Getenv("CASSANDRA_PORT", "9042")
+	keyspace := Getenv("CASSANDRA_KEYSPACE", "kask_test_keyspace")
+	table := Getenv("CASSANDRA_TABLE", "test_table")
+
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		log.Fatalf("%s is not a valid TCP port number!", port)
+	}
+
+	// TODO: Handle errors...
+	store, _ := NewStore(hostname, portNum, keyspace, table)
+
+	http.HandleFunc(root, dispatch(store))
 	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	defer store.Close()
 }
