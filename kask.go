@@ -26,6 +26,8 @@ func Getenv(name string, fallback string) string {
 func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
 	value, err := store.Get(key)
 	if err != nil {
+		// FIXME: This needs to differentiate between a failure to execute the SELECT, and
+		// record that is not found (and should ultimately 404).
 		log.Printf("Error reading key (%s)", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -54,7 +56,9 @@ func putHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 }
 
 func deleteHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
-	log.Println(key)
+	if err := store.Delete(key); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // FIXME: Not good enough; Will violate Element of Least Surprise if

@@ -2,21 +2,17 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gocql/gocql"
 )
 
 type Store struct {
-	client   *gocql.Session
+	session  *gocql.Session
 	Keyspace string
 	Table    string
 }
 
-type Data struct {
-	Key   string
-	Value []byte
-}
-
-func CreateSession(hostname string, port int, keyspace string) (*gocql.Session, error) {
+func createSession(hostname string, port int, keyspace string) (*gocql.Session, error) {
 	cluster := gocql.NewCluster(hostname)
 	cluster.Port = port
 	cluster.Keyspace = keyspace
@@ -25,8 +21,8 @@ func CreateSession(hostname string, port int, keyspace string) (*gocql.Session, 
 }
 
 func NewStore(hostname string, port int, keyspace string, table string) (*Store, error) {
-	if session, err := CreateSession(hostname, port, keyspace); err == nil {
-		return &Store{client: session, Keyspace: keyspace, Table: table}, nil
+	if session, err := createSession(hostname, port, keyspace); err == nil {
+		return &Store{session: session, Keyspace: keyspace, Table: table}, nil
 	} else {
 		return nil, err
 	}
@@ -34,16 +30,21 @@ func NewStore(hostname string, port int, keyspace string, table string) (*Store,
 
 func (s *Store) Set(key string, value []byte) error {
 	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (key, value) VALUES (?,?)`, s.Keyspace, s.Table)
-	return s.client.Query(query, key, value).Exec()
+	return s.session.Query(query, key, value).Exec()
 }
 
 func (s *Store) Get(key string) ([]byte, error) {
 	var value []byte
-	query := fmt.Sprintf(`SELECT value FROM "%s"."%s" WHERE key = ?`, "kask_test_keyspace", "test_table")
-	err := s.client.Query(query, key).Scan(&value)
+	query := fmt.Sprintf(`SELECT value FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
+	err := s.session.Query(query, key).Scan(&value)
 	return value, err
 }
 
+func (s *Store) Delete(key string) error {
+	query := fmt.Sprintf(`DELETE FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
+	return s.session.Query(query, key).Exec()
+}
+
 func (s *Store) Close() {
-	s.client.Close()
+	s.session.Close()
 }

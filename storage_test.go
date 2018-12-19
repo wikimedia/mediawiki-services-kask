@@ -21,7 +21,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-func TestSetGet(t *testing.T) {
+func TestSetGetDelete(t *testing.T) {
 	hostname := Getenv("CASSANDRA_HOST", "localhost")
 	port := Getenv("CASSANDRA_PORT", "9042")
 	keyspace := Getenv("CASSANDRA_KEYSPACE", "kask_test_keyspace")
@@ -53,5 +53,15 @@ func TestSetGet(t *testing.T) {
 		if string(res) != string(val) {
 			t.Fail()
 		}
+	}
+
+	// Delete
+	if err := store.Delete(key); err != nil {
+		t.Errorf("Error deleting value (%s)", err)
+	}
+
+	// Read
+	if _, err := store.Get(key); err == nil {
+		t.Fail()
 	}
 }
