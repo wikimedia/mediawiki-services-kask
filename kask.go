@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"log/syslog"
 	"net/http"
 	"os"
 	"path"
@@ -13,6 +15,41 @@ import (
 )
 
 const root string = "/sessions/v1/"
+const service string = "kask"
+
+var Log Logger
+
+type Logger struct {
+	writer *syslog.Writer
+}
+
+func (l *Logger) Critical(format string, v ...interface{}) {
+	l.writer.Crit(fmt.Sprintf(format, v))
+}
+
+func (l *Logger) Error(format string, v ...interface{}) {
+	l.writer.Err(fmt.Sprintf(format, v))
+}
+
+func (l *Logger) Warning(format string, v ...interface{}) {
+	l.writer.Warning(fmt.Sprintf(format, v))
+}
+
+func (l *Logger) Info(format string, v ...interface{}) {
+	l.writer.Info(fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Debug(format string, v ...interface{}) {
+	l.writer.Debug(fmt.Sprintf(format, v))
+}
+
+func NewLog() Logger {
+	writer, err := syslog.Dial("", "", syslog.LOG_WARNING|syslog.LOG_DAEMON, service)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return Logger{writer}
+}
 
 func Getenv(name string, fallback string) string {
 	value := os.Getenv(name)
@@ -27,8 +64,7 @@ func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 	value, err := store.Get(key)
 	if err != nil {
 		// FIXME: This needs to differentiate between a failure to execute the SELECT, and
-		// a record that is not found (and should ultimately 404).
-		log.Printf("Error reading key (%s)", err)
+		// a record that is not found (which should result in 404, not 500).
 		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
@@ -44,7 +80,7 @@ func postHandler(w http.ResponseWriter, r *http.Request, store *Store, key strin
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := store.Set(key, body); err != nil {
-		log.Printf("Error setting value (%s)", err) // FIXME: debug
+		Log.Error("Unable to persist value (%s)", err)
 		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
@@ -107,6 +143,9 @@ func main() {
 
 	// TODO: Handle errors...
 	store, _ := NewStore(hostname, portNum, keyspace, table)
+
+	Log = NewLog()
+	Log.Info("Starting up...")
 
 	http.HandleFunc(root, dispatch(store))
 	log.Fatal(http.ListenAndServe(":8080", nil))
