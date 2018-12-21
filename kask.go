@@ -27,9 +27,9 @@ func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 	value, err := store.Get(key)
 	if err != nil {
 		// FIXME: This needs to differentiate between a failure to execute the SELECT, and
-		// record that is not found (and should ultimately 404).
+		// a record that is not found (and should ultimately 404).
 		log.Printf("Error reading key (%s)", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -39,13 +39,13 @@ func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 func postHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := store.Set(key, body); err != nil {
-		log.Printf("Error setting value (%s)", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		log.Printf("Error setting value (%s)", err) // FIXME: debug
+		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -57,7 +57,7 @@ func putHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 
 func deleteHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
 	if err := store.Delete(key); err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		HttpError(w, InternelServerError(path.Join(root, key)))
 	}
 }
 
@@ -75,7 +75,7 @@ func dispatch(s *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key, err := parseKey(r.URL.Path)
 		if err != nil {
-			http.NotFound(w, r)
+			HttpError(w, NotFound(path.Join(root, key)))
 			return
 		}
 
@@ -89,7 +89,7 @@ func dispatch(s *Store) http.HandlerFunc {
 		case http.MethodDelete:
 			deleteHandler(w, r, s, key)
 		default:
-			http.Error(w, "Bad request", http.StatusBadRequest)
+			HttpError(w, BadRequest(path.Join(root, key)))
 		}
 	}
 }
