@@ -24,15 +24,15 @@ type Logger struct {
 }
 
 func (l *Logger) Critical(format string, v ...interface{}) {
-	l.writer.Crit(fmt.Sprintf(format, v))
+	l.writer.Crit(fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.writer.Err(fmt.Sprintf(format, v))
+	l.writer.Err(fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Warning(format string, v ...interface{}) {
-	l.writer.Warning(fmt.Sprintf(format, v))
+	l.writer.Warning(fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
@@ -40,7 +40,7 @@ func (l *Logger) Info(format string, v ...interface{}) {
 }
 
 func (l *Logger) Debug(format string, v ...interface{}) {
-	l.writer.Debug(fmt.Sprintf(format, v))
+	l.writer.Debug(fmt.Sprintf(format, v...))
 }
 
 func NewLog() Logger {
