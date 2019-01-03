@@ -30,11 +30,14 @@ func main() {
 		log.Fatalf("%s is not a valid TCP port number!", port)
 	}
 
-	// TODO: Handle errors...
-	store, _ := NewCassandraStore(hostname, portNum, keyspace, table)
-
-	logger := NewLog(service)
+	logger := NewLogger(service)
 	logger.Info("Starting up...")
+
+	store, err := NewCassandraStore(hostname, portNum, keyspace, table)
+	if err != nil {
+		logger.Error("Error connecting to Cassandra: %s", err)
+		log.Fatal("Error connecting to Cassandra: ", err)
+	}
 
 	handler := HttpHandler{store, &logger}
 
