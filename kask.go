@@ -33,7 +33,7 @@ func main() {
 	// TODO: Handle errors...
 	store, _ := NewCassandraStore(hostname, portNum, keyspace, table)
 
-	logger := NewLog()
+	logger := NewLog(service)
 	logger.Info("Starting up...")
 
 	handler := HttpHandler{store, &logger}
