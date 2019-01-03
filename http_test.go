@@ -1,5 +1,9 @@
 package main
 
+import (
+	"github.com/gocql/gocql"
+)
+
 type mockStore struct {
 	data map[string][]byte
 }
@@ -10,7 +14,11 @@ func (m *mockStore) Set(key string, value []byte) error {
 }
 
 func (m *mockStore) Get(key string) ([]byte, error) {
-	return m.data[key], nil
+	if value, ok := m.data[key]; ok {
+		return m.data[key], nil
+	} else {
+		return value, gocql.ErrNotFound
+	}
 }
 
 func (m *mockStore) Delete(key string) error {
