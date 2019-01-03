@@ -60,7 +60,7 @@ func Getenv(name string, fallback string) string {
 	}
 }
 
-func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+func getHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
 	value, err := store.Get(key)
 	if err != nil {
 		// FIXME: This needs to differentiate between a failure to execute the SELECT, and
@@ -72,7 +72,7 @@ func getHandler(w http.ResponseWriter, r *http.Request, store *Store, key string
 	w.Write(value)
 }
 
-func postHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+func postHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		HttpError(w, InternelServerError(path.Join(root, key)))
@@ -87,11 +87,11 @@ func postHandler(w http.ResponseWriter, r *http.Request, store *Store, key strin
 	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
-func putHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+func putHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
 	log.Println(key)
 }
 
-func deleteHandler(w http.ResponseWriter, r *http.Request, store *Store, key string) {
+func deleteHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
 	if err := store.Delete(key); err != nil {
 		HttpError(w, InternelServerError(path.Join(root, key)))
 	}
@@ -107,7 +107,7 @@ func parseKey(url string) (string, error) {
 	return path.Base(url), nil
 }
 
-func dispatch(s *Store) http.HandlerFunc {
+func dispatch(s Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key, err := parseKey(r.URL.Path)
 		if err != nil {
@@ -142,7 +142,7 @@ func main() {
 	}
 
 	// TODO: Handle errors...
-	store, _ := NewStore(hostname, portNum, keyspace, table)
+	store, _ := NewCassandraStore(hostname, portNum, keyspace, table)
 
 	Log = NewLog()
 	Log.Info("Starting up...")

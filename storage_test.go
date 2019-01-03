@@ -33,7 +33,7 @@ func TestSetGetDelete(t *testing.T) {
 	}
 
 	// Connect
-	store, err := NewStore(hostname, portNum, keyspace, table)
+	store, err := NewCassandraStore(hostname, portNum, keyspace, table)
 	if err != nil {
 		t.Errorf("Error connecting to data store (%s)", err)
 	}
