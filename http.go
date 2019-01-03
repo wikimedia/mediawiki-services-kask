@@ -1,10 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"path"
+	"strings"
+
+	"github.com/gocql/gocql"
 )
 
 type Problem struct {
@@ -65,4 +72,81 @@ func HttpError(w http.ResponseWriter, p Problem) {
 		log.Printf("Oh noes; Failed to encode problem as JSON: %s", err)
 	}
 	fmt.Fprintln(w, string(j))
+}
+
+type HttpHandler struct {
+	store Store
+	log   *Logger
+}
+
+func (env *HttpHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		env.get(w, r)
+	case http.MethodPost:
+		env.post(w, r)
+	case http.MethodPut:
+		env.put(w, r)
+	case http.MethodDelete:
+		env.delete(w, r)
+	default:
+		HttpError(w, BadRequest(r.URL.Path))
+	}
+}
+
+func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
+	key := r.Context().Value("kask.key").(string)
+	value, err := env.store.Get(key)
+	if err != nil {
+		if err == gocql.ErrNotFound {
+			HttpError(w, NotFound(r.URL.Path))
+		} else {
+			HttpError(w, InternelServerError(r.URL.Path))
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(value)
+}
+
+func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
+	key := r.Context().Value("kask.key").(string)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		HttpError(w, InternelServerError(path.Join(root, key)))
+		return
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	if err := env.store.Set(key, body); err != nil {
+		env.log.Error("Unable to persist value (%s)", err)
+		HttpError(w, InternelServerError(path.Join(root, key)))
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+}
+
+func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
+	key := r.Context().Value("kask.key").(string)
+	log.Println(key)
+}
+
+func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
+	key := r.Context().Value("kask.key").(string)
+	if err := env.store.Delete(key); err != nil {
+		HttpError(w, InternelServerError(path.Join(root, key)))
+	}
+}
+
+func ParseKeyMiddleware(baseURI string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := strings.Replace(r.URL.Path, baseURI, "", 1)
+		if base == "" {
+			HttpError(w, NotFound(r.URL.Path))
+			return
+		}
+
+		key := path.Base(r.URL.Path) // TODO: do
+		ctx := context.WithValue(r.Context(), "kask.key", key)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

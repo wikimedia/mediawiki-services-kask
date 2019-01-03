@@ -1,23 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"log/syslog"
 	"net/http"
 	"os"
-	"path"
 	"strconv"
-	"strings"
 )
 
 const root string = "/sessions/v1/"
 const service string = "kask"
-
-var Log Logger
 
 type Logger struct {
 	writer *syslog.Writer
@@ -60,76 +53,6 @@ func Getenv(name string, fallback string) string {
 	}
 }
 
-func getHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
-	value, err := store.Get(key)
-	if err != nil {
-		// FIXME: This needs to differentiate between a failure to execute the SELECT, and
-		// a record that is not found (which should result in 404, not 500).
-		HttpError(w, InternelServerError(path.Join(root, key)))
-		return
-	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value)
-}
-
-func postHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		HttpError(w, InternelServerError(path.Join(root, key)))
-		return
-	}
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	if err := store.Set(key, body); err != nil {
-		Log.Error("Unable to persist value (%s)", err)
-		HttpError(w, InternelServerError(path.Join(root, key)))
-		return
-	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-}
-
-func putHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
-	log.Println(key)
-}
-
-func deleteHandler(w http.ResponseWriter, r *http.Request, store Store, key string) {
-	if err := store.Delete(key); err != nil {
-		HttpError(w, InternelServerError(path.Join(root, key)))
-	}
-}
-
-// FIXME: Not good enough; Will violate Element of Least Surprise if
-// base contains more than one path element (e.g. 'a/b/c/...').
-func parseKey(url string) (string, error) {
-	base := strings.Replace(url, root, "", 1)
-	if base == "" {
-		return base, errors.New("No key found")
-	}
-	return path.Base(url), nil
-}
-
-func dispatch(s Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		key, err := parseKey(r.URL.Path)
-		if err != nil {
-			HttpError(w, NotFound(path.Join(root, key)))
-			return
-		}
-
-		switch r.Method {
-		case http.MethodGet:
-			getHandler(w, r, s, key)
-		case http.MethodPost:
-			postHandler(w, r, s, key)
-		case http.MethodPut:
-			putHandler(w, r, s, key)
-		case http.MethodDelete:
-			deleteHandler(w, r, s, key)
-		default:
-			HttpError(w, BadRequest(path.Join(root, key)))
-		}
-	}
-}
-
 func main() {
 	hostname := Getenv("CASSANDRA_HOST", "localhost")
 	port := Getenv("CASSANDRA_PORT", "9042")
@@ -144,10 +67,12 @@ func main() {
 	// TODO: Handle errors...
 	store, _ := NewCassandraStore(hostname, portNum, keyspace, table)
 
-	Log = NewLog()
-	Log.Info("Starting up...")
+	logger := NewLog()
+	logger.Info("Starting up...")
 
-	http.HandleFunc(root, dispatch(store))
+	handler := HttpHandler{store, &logger}
+
+	http.Handle(root, ParseKeyMiddleware(root, http.HandlerFunc(handler.Dispatch)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	defer store.Close()
