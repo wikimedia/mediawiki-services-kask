@@ -13,7 +13,7 @@ Dependencies used target what has been shipped in Debian Stretch; To build and
 execute on a Debian:
 
     $ apt install golang-github-gocql-gocql-dev
-    $ GOPATH=/usr/share/gocode go run kask.go storage.go http.go logging.go
+    $ GOPATH=/usr/share/gocode make
 
 If necessary, you can pass environment variables for any of `CASSANDRA_HOST`,
 `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE`, or `CASSANDRA_TABLE`.
