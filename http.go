@@ -122,6 +122,7 @@ func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
 		HttpError(w, InternelServerError(path.Join(root, key)))
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
@@ -135,6 +136,7 @@ func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
 	if err := env.store.Delete(key); err != nil {
 		HttpError(w, InternelServerError(path.Join(root, key)))
 	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func ParseKeyMiddleware(baseURI string, next http.Handler) http.Handler {
