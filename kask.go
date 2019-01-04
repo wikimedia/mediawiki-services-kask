@@ -1,48 +1,37 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 )
 
-const root string = "/sessions/v1/"
-const service string = "kask"
-
-func Getenv(name string, fallback string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		return fallback
-	} else {
-		return value
-	}
-}
+var confFile = flag.String("config", "/etc/kask/config.yaml", "Path to the configuration file")
 
 func main() {
-	hostname := Getenv("CASSANDRA_HOST", "localhost")
-	port := Getenv("CASSANDRA_PORT", "9042")
-	keyspace := Getenv("CASSANDRA_KEYSPACE", "kask_test_keyspace")
-	table := Getenv("CASSANDRA_TABLE", "test_table")
+	flag.Parse()
 
-	portNum, err := strconv.Atoi(port)
+	config, err := ReadConfig(*confFile)
 	if err != nil {
-		log.Fatalf("%s is not a valid TCP port number!", port)
+		log.Fatal(err)
 	}
 
-	logger := NewLogger(service)
-	logger.Info("Starting up...")
+	logger := NewLogger(config.ServiceName)
 
-	store, err := NewCassandraStore(hostname, portNum, keyspace, table)
+	store, err := NewCassandraStore(config.Cassandra.Hostname, config.Cassandra.Port, config.Cassandra.Keyspace, config.Cassandra.Table)
 	if err != nil {
 		logger.Error("Error connecting to Cassandra: %s", err)
 		log.Fatal("Error connecting to Cassandra: ", err)
 	}
 
 	handler := HttpHandler{store, &logger}
+	address := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
-	http.Handle(root, ParseKeyMiddleware(root, http.HandlerFunc(handler.Dispatch)))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	logger.Info("Starting %s on %s", config.ServiceName, address)
+
+	http.Handle(config.BaseUri, ParseKeyMiddleware(config.BaseUri, http.HandlerFunc(handler.Dispatch)))
+	log.Fatal(http.ListenAndServe(address, nil))
 
 	defer store.Close()
 }
