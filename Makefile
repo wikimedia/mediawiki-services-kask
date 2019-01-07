@@ -1,11 +1,12 @@
 
 GOPATH ?= /usr/share/gocode
+CONFIG ?= config.yaml.test
 
 build:
-	GOPATH=$(GOPATH) go build kask.go http.go logging.go storage.go
+	GOPATH=$(GOPATH) go build kask.go config.go http.go logging.go storage.go
 
 functional-test: build
-	GOPATH=$(GOPATH) go test -tags=functional
+	GOPATH=$(GOPATH) go test -tags=functional -config $(CONFIG)
 
 unit-test: build
 	GOPATH=$(GOPATH) go test

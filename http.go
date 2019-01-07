@@ -113,13 +113,13 @@ func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value("kask.key").(string)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		HttpError(w, InternelServerError(path.Join(root, key)))
+		HttpError(w, InternelServerError(r.URL.Path))
 		return
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body); err != nil {
 		env.log.Error("Unable to persist value (%s)", err)
-		HttpError(w, InternelServerError(path.Join(root, key)))
+		HttpError(w, InternelServerError(r.URL.Path))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -134,7 +134,7 @@ func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
 func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value("kask.key").(string)
 	if err := env.store.Delete(key); err != nil {
-		HttpError(w, InternelServerError(path.Join(root, key)))
+		HttpError(w, InternelServerError(r.URL.Path))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

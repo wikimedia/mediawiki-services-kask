@@ -1,0 +1,19 @@
+
+# -*- mode: yaml; -*-
+
+# The name of this service (as it appears in logs)
+service_name: kask
+
+# A constant prepended to all URIs; Everything that appears after is
+# parsed as the key
+base_uri: /sessions/v1
+
+# The IP interface and port to bind the service to
+listen_address: localhost
+listen_port: 8081
+
+# Cassandra connection information
+cassandra:
+  hostname: 172.17.0.2
+  keyspace: kask_test_keyspace
+  table:    test_table

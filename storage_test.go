@@ -4,7 +4,6 @@ package main
 
 import (
 	"math/rand"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -24,18 +23,13 @@ func randString(n int) string {
 }
 
 func TestSetGetDelete(t *testing.T) {
-	hostname := Getenv("CASSANDRA_HOST", "localhost")
-	port := Getenv("CASSANDRA_PORT", "9042")
-	keyspace := Getenv("CASSANDRA_KEYSPACE", "kask_test_keyspace")
-	table := Getenv("CASSANDRA_TABLE", "test_table")
-
-	portNum, err := strconv.Atoi(port)
+	config, err := ReadConfig(*confFile)
 	if err != nil {
-		t.Errorf("%s is not a valid TCP port number!", port)
+		t.Error(err)
 	}
 
 	// Connect
-	store, err := NewCassandraStore(hostname, portNum, keyspace, table)
+	store, err := NewCassandraStore(config.Cassandra.Hostname, config.Cassandra.Port, config.Cassandra.Keyspace, config.Cassandra.Table)
 	if err != nil {
 		t.Errorf("Error connecting to data store (%s)", err)
 	}
