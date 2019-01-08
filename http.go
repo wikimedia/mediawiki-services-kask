@@ -14,6 +14,10 @@ import (
 	"github.com/gocql/gocql"
 )
 
+type contextKey int
+
+const kaskKey contextKey = iota
+
 type Problem struct {
 	Code     int    `json:"-"`
 	Type     string `json:"type"`
@@ -95,7 +99,7 @@ func (env *HttpHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
-	key := r.Context().Value("kask.key").(string)
+	key := r.Context().Value(kaskKey).(string)
 	value, err := env.store.Get(key)
 	if err != nil {
 		if err == gocql.ErrNotFound {
@@ -110,7 +114,7 @@ func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
-	key := r.Context().Value("kask.key").(string)
+	key := r.Context().Value(kaskKey).(string)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		HttpError(w, InternelServerError(r.URL.Path))
@@ -127,28 +131,32 @@ func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
-	key := r.Context().Value("kask.key").(string)
+	key := r.Context().Value(kaskKey).(string)
 	log.Println(key)
 }
 
 func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
-	key := r.Context().Value("kask.key").(string)
+	key := r.Context().Value(kaskKey).(string)
 	if err := env.store.Delete(key); err != nil {
 		HttpError(w, InternelServerError(r.URL.Path))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func ParseKeyMiddleware(baseURI string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		base := strings.Replace(r.URL.Path, baseURI, "", 1)
-		if base == "" {
-			HttpError(w, NotFound(r.URL.Path))
-			return
-		}
+// NewParseKeyMiddleware is a function that accepts a prefix, and returns HTTP middleware that
+// parses a key from the remaining URI.
+func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			base := strings.Replace(r.URL.Path, baseURI, "", 1)
+			if base == "" {
+				HttpError(w, NotFound(r.URL.Path))
+				return
+			}
 
-		key := path.Base(r.URL.Path) // TODO: do
-		ctx := context.WithValue(r.Context(), "kask.key", key)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			key := path.Base(r.URL.Path) // TODO: do
+			ctx := context.WithValue(r.Context(), kaskKey, key)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

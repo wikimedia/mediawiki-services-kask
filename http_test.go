@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/gocql/gocql"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gocql/gocql"
 )
 
 type mockStore struct {
@@ -42,21 +43,22 @@ func NewMockStore() *mockStore {
 
 const prefixUri = "/sessions/v1/"
 
-func SetUp (t *testing.T) (http.Handler, Store) {
-	store   := NewMockStore()
-	logger  := NewLogger("http_test")
+func SetUp(t *testing.T) (http.Handler, Store) {
+	store := NewMockStore()
+	logger := NewLogger("http_test")
 	handler := HttpHandler{store, &logger}
-	handle  := ParseKeyMiddleware(prefixUri, http.HandlerFunc(handler.Dispatch))
+	middleware := NewParseKeyMiddleware(prefixUri)
+	handle := middleware(http.HandlerFunc(handler.Dispatch))
 
 	return handle, store
 }
 
 func TestGetSuccess(t *testing.T) {
 	handler, store := SetUp(t)
-	url            := fmt.Sprintf("%sfoo", prefixUri)
-	req            := httptest.NewRequest("GET", url, nil)
-	rr             := httptest.NewRecorder()
-	expected       := "bar"
+	url := fmt.Sprintf("%sfoo", prefixUri)
+	req := httptest.NewRequest("GET", url, nil)
+	rr := httptest.NewRecorder()
+	expected := "bar"
 
 	store.Set("foo", []byte("bar"))
 
@@ -73,10 +75,9 @@ func TestGetSuccess(t *testing.T) {
 
 func TestGetNotFound(t *testing.T) {
 	handler, _ := SetUp(t)
-	url        := fmt.Sprintf("%scat", prefixUri)
-	req        := httptest.NewRequest("GET", url, nil)
-	rr         := httptest.NewRecorder()
-
+	url := fmt.Sprintf("%scat", prefixUri)
+	req := httptest.NewRequest("GET", url, nil)
+	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
@@ -87,10 +88,10 @@ func TestGetNotFound(t *testing.T) {
 
 func TestPost(t *testing.T) {
 	handler, store := SetUp(t)
-	url            := fmt.Sprintf("%scat", prefixUri)
-	body           := strings.NewReader("meow")
-	req            := httptest.NewRequest("POST", url, body)
-	rr             := httptest.NewRecorder()
+	url := fmt.Sprintf("%scat", prefixUri)
+	body := strings.NewReader("meow")
+	req := httptest.NewRequest("POST", url, body)
+	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
@@ -108,9 +109,9 @@ func TestPost(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	handler, store := SetUp(t)
-	url            := fmt.Sprintf("%scat", prefixUri)
-	req            := httptest.NewRequest("DELETE", url, nil)
-	rr             := httptest.NewRecorder()
+	url := fmt.Sprintf("%scat", prefixUri)
+	req := httptest.NewRequest("DELETE", url, nil)
+	rr := httptest.NewRecorder()
 
 	store.Set("cat", []byte("meow"))
 
