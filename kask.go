@@ -25,12 +25,14 @@ func main() {
 		log.Fatal("Error connecting to Cassandra: ", err)
 	}
 
+	keyMiddleware := NewParseKeyMiddleware(config.BaseUri)
 	handler := HttpHandler{store, &logger}
+	dispatcher := keyMiddleware(http.HandlerFunc(handler.Dispatch))
 	address := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
 	logger.Info("Starting service as http://%s%s", address, config.BaseUri)
 
-	http.Handle(config.BaseUri, ParseKeyMiddleware(config.BaseUri, http.HandlerFunc(handler.Dispatch)))
+	http.Handle(config.BaseUri, dispatcher)
 	log.Fatal(http.ListenAndServe(address, nil))
 
 	defer store.Close()
