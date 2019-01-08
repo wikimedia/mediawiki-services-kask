@@ -30,10 +30,10 @@ func (l *Logger) Debug(format string, v ...interface{}) {
 	l.writer.Debug(fmt.Sprintf(format, v...))
 }
 
-func NewLogger(serviceName string) Logger {
+func NewLogger(serviceName string) *Logger {
 	writer, err := syslog.Dial("", "", syslog.LOG_WARNING|syslog.LOG_DAEMON, serviceName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return Logger{writer}
+	return &Logger{writer}
 }
