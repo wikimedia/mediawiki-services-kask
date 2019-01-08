@@ -53,6 +53,9 @@ func validate(config *Config) (*Config, error) {
 	if !strings.HasSuffix(config.BaseUri, "/") {
 		config.BaseUri += "/"
 	}
+	if !strings.HasPrefix(config.BaseUri, "/") {
+		config.BaseUri = "/" + config.BaseUri
+	}
 	// TODO: Consider other validations
 	return config, nil
 }

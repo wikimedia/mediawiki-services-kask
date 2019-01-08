@@ -28,7 +28,7 @@ func main() {
 	handler := HttpHandler{store, &logger}
 	address := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
-	logger.Info("Starting %s on %s", config.ServiceName, address)
+	logger.Info("Starting service as http://%s%s", address, config.BaseUri)
 
 	http.Handle(config.BaseUri, ParseKeyMiddleware(config.BaseUri, http.HandlerFunc(handler.Dispatch)))
 	log.Fatal(http.ListenAndServe(address, nil))
