@@ -6,13 +6,18 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/gocql/gocql"
+)
+
+const (
+	defaultTTL = 300
+	letters    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-
-const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func randString(n int) string {
 	b := make([]byte, n)
@@ -22,7 +27,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-func TestSetGetDelete(t *testing.T) {
+func setup(t *testing.T) *CassandraStore {
 	config, err := ReadConfig(*confFile)
 	if err != nil {
 		t.Error(err)
@@ -34,11 +39,17 @@ func TestSetGetDelete(t *testing.T) {
 		t.Errorf("Error connecting to data store (%s)", err)
 	}
 
+	return store
+}
+
+func TestSetGetDelete(t *testing.T) {
+	store := setup(t)
+
 	key := randString(8)
 	val := randString(32)
 
 	// Write
-	if err := store.Set(key, []byte(val)); err != nil {
+	if err := store.Set(key, []byte(val), defaultTTL); err != nil {
 		t.Errorf("Error storing value (%s)", err)
 	}
 
@@ -46,7 +57,7 @@ func TestSetGetDelete(t *testing.T) {
 	if res, err := store.Get(key); err != nil {
 		t.Errorf("Error retrieving value (%s)", err)
 	} else {
-		if string(res) != string(val) {
+		if string(res.Value) != string(val) {
 			t.Fail()
 		}
 	}
@@ -59,5 +70,36 @@ func TestSetGetDelete(t *testing.T) {
 	// Read
 	if _, err := store.Get(key); err == nil {
 		t.Fail()
+	}
+}
+
+func TestTTL(t *testing.T) {
+	store := setup(t)
+
+	key := randString(8)
+	val := randString(32)
+
+	// Write a value with TTL of 5 seconds
+	if err := store.Set(key, []byte(val), 5); err != nil {
+		t.Errorf("Error storing value (%s)", err)
+	}
+
+	// Read
+	if res, err := store.Get(key); err != nil {
+		t.Errorf("Error retrieving value (%s)", err)
+	} else {
+		if string(res.Value) != string(val) {
+			t.Fail()
+		}
+		if res.TTL > 300 || res.TTL < 0 {
+			t.Fail()
+		}
+	}
+
+	time.Sleep(5001 * time.Millisecond)
+
+	// Read again after (at least) 5 seconds and 1 millisecond
+	if res, err := store.Get(key); err != gocql.ErrNotFound {
+		t.Errorf("Expected value to have expired but result (%v) returned", res)
 	}
 }

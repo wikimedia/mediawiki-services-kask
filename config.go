@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"strings"
 
@@ -9,9 +10,10 @@ import (
 
 type Config struct {
 	ServiceName string `yaml:"service_name"`
-	BaseUri     string `yaml:"base_uri"`
+	BaseURI     string `yaml:"base_uri"`
 	Address     string `yaml:"listen_address"`
 	Port        int    `yaml:"listen_port"`
+	DefaultTTL  int    `yaml:"default_ttl"`
 
 	Cassandra struct {
 		Hostname string `yaml:"hostname"`
@@ -33,9 +35,10 @@ func NewConfig(data []byte) (*Config, error) {
 	// Populate a new Config with sane defaults
 	config := Config{
 		ServiceName: "kask",
-		BaseUri:     "/v1/",
+		BaseURI:     "/v1/",
 		Address:     "localhost",
 		Port:        8080,
+		DefaultTTL:  86400,
 	}
 	config.Cassandra.Hostname = "localhost"
 	config.Cassandra.Port = 9042
@@ -50,12 +53,15 @@ func NewConfig(data []byte) (*Config, error) {
 }
 
 func validate(config *Config) (*Config, error) {
-	if !strings.HasSuffix(config.BaseUri, "/") {
-		config.BaseUri += "/"
+	if !strings.HasSuffix(config.BaseURI, "/") {
+		config.BaseURI += "/"
 	}
-	if !strings.HasPrefix(config.BaseUri, "/") {
-		config.BaseUri = "/" + config.BaseUri
+	if !strings.HasPrefix(config.BaseURI, "/") {
+		config.BaseURI = "/" + config.BaseURI
 	}
-	// TODO: Consider other validations
+	if config.DefaultTTL < 0 {
+		return nil, errors.New("TTL must be a positive integer")
+	}
+	// TODO: Consider some other validations
 	return config, nil
 }

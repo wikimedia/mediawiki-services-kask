@@ -7,8 +7,8 @@ import (
 )
 
 type Store interface {
-	Set(string, []byte) error
-	Get(string) ([]byte, error)
+	Set(string, []byte, int) error
+	Get(string) (Datum, error)
 	Delete(string) error
 	Close()
 }
@@ -17,6 +17,11 @@ type CassandraStore struct {
 	session  *gocql.Session
 	Keyspace string
 	Table    string
+}
+
+type Datum struct {
+	Value []byte
+	TTL   int
 }
 
 func createSession(hostname string, port int, keyspace string) (*gocql.Session, error) {
@@ -28,23 +33,24 @@ func createSession(hostname string, port int, keyspace string) (*gocql.Session, 
 }
 
 func NewCassandraStore(hostname string, port int, keyspace string, table string) (*CassandraStore, error) {
-	if session, err := createSession(hostname, port, keyspace); err == nil {
+	session, err := createSession(hostname, port, keyspace)
+	if err == nil {
 		return &CassandraStore{session: session, Keyspace: keyspace, Table: table}, nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
-func (s *CassandraStore) Set(key string, value []byte) error {
-	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (key, value) VALUES (?,?)`, s.Keyspace, s.Table)
-	return s.session.Query(query, key, value).Exec()
+func (s *CassandraStore) Set(key string, value []byte, ttl int) error {
+	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (key, value) VALUES (?,?) USING TTL ?`, s.Keyspace, s.Table)
+	return s.session.Query(query, key, value, ttl).Exec()
 }
 
-func (s *CassandraStore) Get(key string) ([]byte, error) {
+func (s *CassandraStore) Get(key string) (Datum, error) {
 	var value []byte
-	query := fmt.Sprintf(`SELECT value FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
-	err := s.session.Query(query, key).Scan(&value)
-	return value, err
+	var ttl int
+	query := fmt.Sprintf(`SELECT value, TTL(value) as ttl FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
+	err := s.session.Query(query, key).Scan(&value, &ttl)
+	return Datum{value, ttl}, err
 }
 
 func (s *CassandraStore) Delete(key string) error {

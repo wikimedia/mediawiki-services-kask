@@ -12,6 +12,9 @@ base_uri: /sessions/v1
 listen_address: localhost
 listen_port: 8081
 
+# A time-to-live (in seconds) for stored values (0 disables)
+default_ttl: 86400
+
 # Cassandra connection information
 cassandra:
   hostname: 172.17.0.2

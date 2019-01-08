@@ -79,8 +79,9 @@ func HttpError(w http.ResponseWriter, p Problem) {
 }
 
 type HttpHandler struct {
-	store Store
-	log   *Logger
+	store  Store
+	config *Config
+	log    *Logger
 }
 
 func (env *HttpHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +111,7 @@ func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value)
+	w.Write(value.Value)
 }
 
 func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +122,7 @@ func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	if err := env.store.Set(key, body); err != nil {
+	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
 		env.log.Error("Unable to persist value (%s)", err)
 		HttpError(w, InternelServerError(r.URL.Path))
 		return
