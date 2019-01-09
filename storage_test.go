@@ -3,29 +3,13 @@
 package main
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
 )
 
-const (
-	defaultTTL = 300
-	letters    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-func randString(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
+const defaultTTL = 300
 
 func setup(t *testing.T) *CassandraStore {
 	config, err := ReadConfig(*confFile)
@@ -45,8 +29,8 @@ func setup(t *testing.T) *CassandraStore {
 func TestSetGetDelete(t *testing.T) {
 	store := setup(t)
 
-	key := randString(8)
-	val := randString(32)
+	key := RandString(8)
+	val := RandString(32)
 
 	// Write
 	if err := store.Set(key, []byte(val), defaultTTL); err != nil {
@@ -76,8 +60,8 @@ func TestSetGetDelete(t *testing.T) {
 func TestTTL(t *testing.T) {
 	store := setup(t)
 
-	key := randString(8)
-	val := randString(32)
+	key := RandString(8)
+	val := RandString(32)
 
 	// Write a value with TTL of 5 seconds
 	if err := store.Set(key, []byte(val), 5); err != nil {
