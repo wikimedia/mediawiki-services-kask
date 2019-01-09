@@ -1,10 +1,12 @@
+// +build unit
+
 package main
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strings"
 	"testing"
 
@@ -42,7 +44,7 @@ func newMockStore() *mockStore {
 
 const prefixURI = "/sessions/v1/"
 
-func SetUp(t *testing.T) (http.Handler, Store) {
+func setUp(t *testing.T) (http.Handler, Store) {
 	store := newMockStore()
 	config, _ := NewConfig([]byte("default_ttl: 300000"))
 	logger := NewLogger("http_test")
@@ -54,8 +56,8 @@ func SetUp(t *testing.T) (http.Handler, Store) {
 }
 
 func TestGetSuccess(t *testing.T) {
-	handler, store := SetUp(t)
-	url := fmt.Sprintf("%sfoo", prefixURI)
+	handler, store := setUp(t)
+	url := path.Join(prefixURI, "foo")
 	req := httptest.NewRequest("GET", url, nil)
 	rr := httptest.NewRecorder()
 	expected := "bar"
@@ -64,40 +66,31 @@ func TestGetSuccess(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("handler returned wrong status code got %v expected %v", rr.Code, http.StatusOK)
-	}
-
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v expected %v", rr.Body.String(), expected)
-	}
+	AssertEquals(t, http.StatusOK, rr.Code, "Incorrect status code")
+	AssertEquals(t, expected, rr.Body.String(), "Unexpected value")
 }
 
 func TestGetNotFound(t *testing.T) {
-	handler, _ := SetUp(t)
-	url := fmt.Sprintf("%scat", prefixURI)
+	handler, _ := setUp(t)
+	url := path.Join(prefixURI, "cat")
 	req := httptest.NewRequest("GET", url, nil)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code got %v expected %v", rr.Code, http.StatusNotFound)
-	}
+	AssertEquals(t, http.StatusNotFound, rr.Code, "Incorrect status code")
 }
 
 func TestPost(t *testing.T) {
-	handler, store := SetUp(t)
-	url := fmt.Sprintf("%scat", prefixURI)
+	handler, store := setUp(t)
+	url := path.Join(prefixURI, "cat")
 	body := strings.NewReader("meow")
 	req := httptest.NewRequest("POST", url, body)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusCreated {
-		t.Errorf("handler returned wrong status code got %v expected %v", rr.Code, http.StatusCreated)
-	}
+	AssertEquals(t, http.StatusCreated, rr.Code, "Incorrect status code")
 
 	value, _ := store.Get("cat")
 	expected := []byte("meow")
@@ -108,8 +101,8 @@ func TestPost(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	handler, store := SetUp(t)
-	url := fmt.Sprintf("%scat", prefixURI)
+	handler, store := setUp(t)
+	url := path.Join(prefixURI, "cat")
 	req := httptest.NewRequest("DELETE", url, nil)
 	rr := httptest.NewRecorder()
 
@@ -117,9 +110,7 @@ func TestDelete(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNoContent {
-		t.Errorf("handler returned wrong status code got %v expected %v", rr.Code, http.StatusNoContent)
-	}
+	AssertEquals(t, http.StatusNoContent, rr.Code, "Incorrect status code")
 
 	value, _ := store.Get("cat")
 
