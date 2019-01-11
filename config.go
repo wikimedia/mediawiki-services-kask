@@ -8,6 +8,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Config represents an application-wide configuration.
 type Config struct {
 	ServiceName string `yaml:"service_name"`
 	BaseURI     string `yaml:"base_uri"`
@@ -23,6 +24,7 @@ type Config struct {
 	}
 }
 
+// ReadConfig returns a new Config from a YAML file.
 func ReadConfig(filename string) (*Config, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -31,6 +33,7 @@ func ReadConfig(filename string) (*Config, error) {
 	return NewConfig(data)
 }
 
+// NewConfig returns a new Config from YAML serialized as bytes.
 func NewConfig(data []byte) (*Config, error) {
 	// Populate a new Config with sane defaults
 	config := Config{

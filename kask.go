@@ -26,7 +26,7 @@ func main() {
 	}
 
 	keyMiddleware := NewParseKeyMiddleware(config.BaseURI)
-	handler := HttpHandler{store, config, logger}
+	handler := HTTPHandler{store, config, logger}
 	dispatcher := keyMiddleware(http.HandlerFunc(handler.Dispatch))
 	address := fmt.Sprintf("%s:%d", config.Address, config.Port)
 

@@ -17,6 +17,7 @@ type contextKey int
 
 const kaskKey contextKey = iota
 
+// Problem corresponds to an HTTP problem (https://tools.ietf.org/html/rfc7807)
 type Problem struct {
 	Code     int    `json:"-"`
 	Type     string `json:"type"`
@@ -25,6 +26,7 @@ type Problem struct {
 	Instance string `json:"instance"`
 }
 
+// BadRequest is an HTTP problem (RFC7807) corresponding to a status 400 response.
 func BadRequest(instance string) Problem {
 	return Problem{
 		Code:     400,
@@ -35,6 +37,7 @@ func BadRequest(instance string) Problem {
 	}
 }
 
+// NotAuthorized is an HTTP problem (RFC7807) corresponding to a status 401 response.
 func NotAuthorized(instance string) Problem {
 	return Problem{
 		Code:     401,
@@ -45,6 +48,7 @@ func NotAuthorized(instance string) Problem {
 	}
 }
 
+// NotFound is an HTTP problem (RFC7807) corresponding to a status 404 response.
 func NotFound(instance string) Problem {
 	return Problem{
 		Code:     404,
@@ -55,7 +59,8 @@ func NotFound(instance string) Problem {
 	}
 }
 
-func InternelServerError(instance string) Problem {
+// InternalServerError is an HTTP problem (RFC7807) corresponding to a status 500 response.
+func InternalServerError(instance string) Problem {
 	return Problem{
 		Code:     500,
 		Type:     "https://www.mediawiki.org/wiki/probs/internal-server-error",
@@ -65,7 +70,8 @@ func InternelServerError(instance string) Problem {
 	}
 }
 
-func HttpError(w http.ResponseWriter, p Problem) {
+// HTTPError applies an HTTP problem to an HTTP response
+func HTTPError(w http.ResponseWriter, p Problem) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(p.Code)
@@ -77,13 +83,15 @@ func HttpError(w http.ResponseWriter, p Problem) {
 	fmt.Fprintln(w, string(j))
 }
 
-type HttpHandler struct {
+// HTTPHandler encapsulates the Kask request handlers and their dependencies.
+type HTTPHandler struct {
 	store  Store
 	config *Config
 	log    *Logger
 }
 
-func (env *HttpHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
+// Dispatch accepts requests (of the base URI) for any HTTP method, and dispatches them to the appropriate handler.
+func (env *HTTPHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		env.get(w, r)
@@ -94,18 +102,19 @@ func (env *HttpHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		env.delete(w, r)
 	default:
-		HttpError(w, BadRequest(r.URL.Path))
+		HTTPError(w, BadRequest(r.URL.Path))
 	}
 }
 
-func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
+// GET requests
+func (env *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	value, err := env.store.Get(key)
 	if err != nil {
 		if err == gocql.ErrNotFound {
-			HttpError(w, NotFound(r.URL.Path))
+			HTTPError(w, NotFound(r.URL.Path))
 		} else {
-			HttpError(w, InternelServerError(r.URL.Path))
+			HTTPError(w, InternalServerError(r.URL.Path))
 		}
 		return
 	}
@@ -113,31 +122,35 @@ func (env *HttpHandler) get(w http.ResponseWriter, r *http.Request) {
 	w.Write(value.Value)
 }
 
-func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
+// POST requests
+func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		HttpError(w, InternelServerError(r.URL.Path))
+		HTTPError(w, InternalServerError(r.URL.Path))
 		return
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
 		env.log.Error("Unable to persist value (%s)", err)
-		HttpError(w, InternelServerError(r.URL.Path))
+		HTTPError(w, InternalServerError(r.URL.Path))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
+
+// PUT requests
 func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
 	HttpError(w, BadRequest(r.URL.Path))
 }
 
-func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
+// DELETE requests
+func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	if err := env.store.Delete(key); err != nil {
-		HttpError(w, InternelServerError(r.URL.Path))
+		HTTPError(w, InternalServerError(r.URL.Path))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -150,13 +163,13 @@ func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
 			base := strings.Split(r.URL.Path, baseURI)[1:]
 
 			if len(base) == 0 {
-				HttpError(w, NotFound(r.URL.Path))
+				HTTPError(w, NotFound(r.URL.Path))
 				return
 			}
 
 			// Checks if there are queries in URL
 			if len(r.URL.RawQuery) > 0 {
-				HttpError(w, BadRequest(r.URL.Path))
+				HTTPError(w, BadRequest(r.URL.Path))
 				return
 			}
 
@@ -164,7 +177,7 @@ func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
 
 			// Checks if there are more than one key passed in in the URL after the baseURI
 			if len(list) > 1 {
-				HttpError(w, NotFound(r.URL.Path))
+				HTTPError(w, NotFound(r.URL.Path))
 				return
 			}
 
