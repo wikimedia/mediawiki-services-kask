@@ -142,8 +142,8 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 
 
 // PUT requests
-func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
-	HttpError(w, BadRequest(r.URL.Path))
+func (env *HTTPHandler) put(w http.ResponseWriter, r *http.Request) {
+	HTTPError(w, BadRequest(r.URL.Path))
 }
 
 // DELETE requests
