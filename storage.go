@@ -42,20 +42,20 @@ func NewCassandraStore(hostname string, port int, keyspace string, table string)
 
 func (s *CassandraStore) Set(key string, value []byte, ttl int) error {
 	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (key, value) VALUES (?,?) USING TTL ?`, s.Keyspace, s.Table)
-	return s.session.Query(query, key, value, ttl).Exec()
+	return s.session.Query(query, key, value, ttl).Consistency(gocql.LocalQuorum).Exec()
 }
 
 func (s *CassandraStore) Get(key string) (Datum, error) {
 	var value []byte
 	var ttl int
 	query := fmt.Sprintf(`SELECT value, TTL(value) as ttl FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
-	err := s.session.Query(query, key).Scan(&value, &ttl)
+	err := s.session.Query(query, key).Consistency(gocql.LocalQuorum).Scan(&value, &ttl)
 	return Datum{value, ttl}, err
 }
 
 func (s *CassandraStore) Delete(key string) error {
 	query := fmt.Sprintf(`DELETE FROM "%s"."%s" WHERE key = ?`, s.Keyspace, s.Table)
-	return s.session.Query(query, key).Exec()
+	return s.session.Query(query, key).Consistency(gocql.EachQuorum).Exec()
 }
 
 func (s *CassandraStore) Close() {
