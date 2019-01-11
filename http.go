@@ -131,8 +131,7 @@ func (env *HttpHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *HttpHandler) put(w http.ResponseWriter, r *http.Request) {
-	key := r.Context().Value(kaskKey).(string)
-	log.Println(key)
+	HttpError(w, BadRequest(r.URL.Path))
 }
 
 func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
