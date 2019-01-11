@@ -1,7 +1,7 @@
-go-kask
-=======
+kask
+====
 
-Prototype of Kask in Golang.
+Kask is a (multi-master) replicated key-value service.
 
 ## Building
 
@@ -16,7 +16,7 @@ execute on a Debian:
     $ make unit-test
     $ CONFIG=config.yaml.test make functional-test
 
-*NOTE: `config.yaml.test` is excluded from version control and is suitable for local configuration.*
+*NOTE: `config.yaml.test` is excluded from version control and is recommended for local configuration.*
 
 ## Running
 
