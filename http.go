@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/gocql/gocql"
@@ -149,13 +148,28 @@ func (env *HttpHandler) delete(w http.ResponseWriter, r *http.Request) {
 func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			base := strings.Replace(r.URL.Path, baseURI, "", 1)
-			if base == "" {
+			base := strings.Split(r.URL.Path, baseURI)[1:]
+
+			if len(base) == 0 {
 				HttpError(w, NotFound(r.URL.Path))
 				return
 			}
 
-			key := path.Base(r.URL.Path) // TODO: do
+			// Checks if there are queries in URL
+			if len(r.URL.RawQuery) > 0 {
+				HttpError(w, BadRequest(r.URL.Path))
+				return
+			}
+
+			list := strings.Split(base[0], "/")
+
+			// Checks if there are more than one key passed in in the URL after the baseURI
+			if len(list) > 1 {
+				HttpError(w, NotFound(r.URL.Path))
+				return
+			}
+
+			key := list[0]
 			ctx := context.WithValue(r.Context(), kaskKey, key)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
