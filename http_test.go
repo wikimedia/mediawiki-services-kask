@@ -4,13 +4,12 @@ package main
 
 import (
 	"bytes"
+	"github.com/gocql/gocql"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
-
-	"github.com/gocql/gocql"
 )
 
 type mockStore struct {
@@ -117,4 +116,41 @@ func TestDelete(t *testing.T) {
 	if len(value.Value) > 0 {
 		t.Errorf("DELETE did not remove key: cat and value: %s ", value.Value)
 	}
+}
+
+func TestNewParseKeyMiddleware(t *testing.T) {
+	testCases := []struct {
+		url        string
+		expected   string
+		statusCode int
+	}{
+		{path.Join(prefixURI, "cat"), "cat", 200},
+		{path.Join(prefixURI, "cat/dog"), "", 404},
+		{"/", "", 404},
+		{"/something/else", "", 404},
+		{path.Join(prefixURI, "foo%3Fbar"), "foo?bar", 200},
+		{path.Join(prefixURI, "foo?bar"), "", 400},
+		{path.Join(prefixURI, "cat%20dog"), "cat dog", 200},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.url, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				key := r.Context().Value(kaskKey).(string)
+				AssertEquals(t, tc.expected, key, "Incorrect key parsed")
+			})
+
+			req := httptest.NewRequest("GET", tc.url, nil)
+			rr := httptest.NewRecorder()
+
+			parser := NewParseKeyMiddleware(prefixURI)(handler)
+
+			parser.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				AssertEquals(t, tc.statusCode, rr.Code, "Incorrect status code")
+			}
+
+		})
+	}
+
 }
