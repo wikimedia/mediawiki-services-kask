@@ -99,6 +99,18 @@ func TestPost(t *testing.T) {
 	}
 }
 
+func TestPut(t *testing.T) {
+	handler, _ := setUp(t)
+	url := path.Join(prefixURI, "cat")
+	body := strings.NewReader("roar")
+	req := httptest.NewRequest("PUT", url, body)
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	AssertEquals(t, http.StatusBadRequest, rr.Code, "Incorrect status code")
+}
+
 func TestDelete(t *testing.T) {
 	handler, store := setUp(t)
 	url := path.Join(prefixURI, "cat")
