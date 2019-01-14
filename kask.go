@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var confFile = flag.String("config", "/etc/kask/config.yaml", "Path to the configuration file")
@@ -36,5 +38,6 @@ func main() {
 	logger.Info("Starting service as http://%s%s", address, config.BaseURI)
 
 	http.Handle(config.BaseURI, dispatcher)
+	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(address, nil))
 }
