@@ -25,6 +25,9 @@ func main() {
 		log.Fatal("Error connecting to Cassandra: ", err)
 	}
 
+	// Close the database connection before returning from main()
+	defer store.Close()
+
 	keyMiddleware := NewParseKeyMiddleware(config.BaseURI)
 	handler := HTTPHandler{store, config, logger}
 	dispatcher := keyMiddleware(http.HandlerFunc(handler.Dispatch))
@@ -34,6 +37,4 @@ func main() {
 
 	http.Handle(config.BaseURI, dispatcher)
 	log.Fatal(http.ListenAndServe(address, nil))
-
-	defer store.Close()
 }
