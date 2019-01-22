@@ -1,39 +1,96 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/syslog"
 )
 
+const (
+	LogDebug    = iota
+	LogInfo     = iota
+	LogWarning  = iota
+	LogError    = iota
+	LogCritical = iota
+)
+
 // Logger formats and delivers log messages.
 type Logger struct {
-	writer *syslog.Writer
+	writer      *syslog.Writer
+	serviceName string
+}
+
+// LogMessage formats and delivers log messages.
+type LogMessage struct {
+	Msg     string `json:"msg"`
+	Appname string `json:"appname"`
+}
+
+// ceeString converts an interface into a JSON string prepended with @cee.
+func ceeString(m interface{}) (string, error) {
+	j, err := json.Marshal(m)
+
+	return "@cee: " + string(j), err
+}
+
+// Log creates log message of various severity.
+func (l *Logger) Log(i int, message LogMessage) {
+	str, er := ceeString(message)
+
+	if er != nil {
+		err := l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Error serializing log message: %v (%s)" }`, message, er))
+		if err != nil {
+			log.Print(message)
+		}
+	}
+
+	var err error
+
+	switch i {
+	case LogDebug:
+		err = l.writer.Debug(str)
+	case LogInfo:
+		err = l.writer.Info(str)
+	case LogWarning:
+		err = l.writer.Warning(str)
+	case LogError:
+		err = l.writer.Err(str)
+	case LogCritical:
+		err = l.writer.Crit(str)
+	default:
+		err = l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Incorrect log enum provided: %d" }`, i))
+
+	}
+
+	if err != nil {
+		log.Print(message)
+	}
 }
 
 // Critical logs messages of severity CRITICAL.
 func (l *Logger) Critical(format string, v ...interface{}) {
-	l.writer.Crit(fmt.Sprintf(format, v...))
+	l.Log(LogCritical, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
 // Error logs messages of severity ERROR.
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.writer.Err(fmt.Sprintf(format, v...))
+	l.Log(LogError, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
 // Warning logs messages of severity WARNING.
 func (l *Logger) Warning(format string, v ...interface{}) {
-	l.writer.Warning(fmt.Sprintf(format, v...))
+	l.Log(LogWarning, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
 // Info logs messages of severity INFO.
 func (l *Logger) Info(format string, v ...interface{}) {
-	l.writer.Info(fmt.Sprintf(format, v...))
+	l.Log(LogInfo, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
 // Debug logs messages of severity DEBUG.
 func (l *Logger) Debug(format string, v ...interface{}) {
-	l.writer.Debug(fmt.Sprintf(format, v...))
+	l.Log(LogDebug, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
 // NewLogger constructs new instances of Logger.
@@ -42,5 +99,5 @@ func NewLogger(serviceName string) *Logger {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &Logger{writer}
+	return &Logger{writer, serviceName}
 }
