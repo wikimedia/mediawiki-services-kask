@@ -4,12 +4,13 @@ package main
 
 import (
 	"bytes"
-	"github.com/gocql/gocql"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/gocql/gocql"
 )
 
 type mockStore struct {

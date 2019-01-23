@@ -140,7 +140,6 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
-
 // PUT requests
 func (env *HTTPHandler) put(w http.ResponseWriter, r *http.Request) {
 	HTTPError(w, BadRequest(r.URL.Path))
