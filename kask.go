@@ -20,12 +20,36 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 )
 
-var confFile = flag.String("config", "/etc/kask/config.yaml", "Path to the configuration file")
+var (
+	confFile = flag.String("config", "/etc/kask/config.yaml", "Path to the configuration file")
+
+	httpReqs = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Count of HTTP requests processed, partitioned by status code and HTTP method.",
+		},
+		[]string{"code", "method"},
+	)
+
+	duration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "A histogram of latencies for requests, partitioned by status code and HTTP method.",
+			Buckets: []float64{.001, .0025, .0050, .01, .025, .050, .10, .25, .50, 1},
+		},
+		[]string{"code", "method"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(httpReqs, duration)
+}
 
 func main() {
 	flag.Parse()
@@ -53,7 +77,9 @@ func main() {
 
 	logger.Info("Starting service as http://%s%s", address, config.BaseURI)
 
-	http.Handle(config.BaseURI, dispatcher)
+	promHandler := promhttp.InstrumentHandlerDuration(duration, promhttp.InstrumentHandlerCounter(httpReqs, dispatcher))
+
+	http.Handle(config.BaseURI, promHandler)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(address, nil))
 }

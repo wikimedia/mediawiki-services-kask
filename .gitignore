@@ -2,3 +2,4 @@
 kask
 config.yaml.test
 devscripts/
+prometheus.yml
