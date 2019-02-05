@@ -20,6 +20,7 @@ GOTEST_ARGS ?=
 CONFIG ?= config.yaml.test
 GO_PACKAGES := ./...
 
+
 build:
 	GOPATH=$(GOPATH) go build kask.go config.go http.go logging.go storage.go
 
@@ -33,18 +34,24 @@ integration-test: build
 	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=integration -config $(CONFIG)
 
 deps:
-	go get golang.org/x/lint/golint
-	go get golang.org/x/tools/cmd/goimports
+	@if test -z "`which goimports`"; then \
+	    echo "goimports not found; Installing goimports..."; \
+	    go get golang.org/x/tools/cmd/goimports; \
+	fi
+	@if test -z "`which golint`"; then \
+	    echo "golint not found; Installing golint..."; \
+	    go get golang.org/x/lint/golint; \
+	fi
 
 check: deps
 	@if [ -n "`goimports -l *.go`" ]; then \
-        echo "goimports: format errors detected" >&2; \
-        false; \
-    fi
+	    echo "goimports: format errors detected" >&2; \
+	    false; \
+	fi
 	@if [ -n "`gofmt -l *.go`" ]; then \
-        echo "gofmt: format errors detected" >&2; \
-        false; \
-    fi
+	    echo "gofmt: format errors detected" >&2; \
+	    false; \
+	fi
 	golint -set_exit_status $(GO_PACKAGES)
 	go vet -composites=false $(GO_PACKAGES)
 
