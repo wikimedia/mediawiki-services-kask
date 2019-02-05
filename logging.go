@@ -24,6 +24,7 @@ import (
 	"log/syslog"
 )
 
+// Log levels
 const (
 	LogDebug    = iota
 	LogInfo     = iota
@@ -38,7 +39,7 @@ type Logger struct {
 	serviceName string
 }
 
-// LogMessage formats and delivers log messages.
+// LogMessage represents JSON serializable log messages.
 type LogMessage struct {
 	Msg     string `json:"msg"`
 	Appname string `json:"appname"`
@@ -51,12 +52,13 @@ func ceeString(m interface{}) (string, error) {
 	return "@cee: " + string(j), err
 }
 
-// Log creates log message of various severity.
+// Log records a message at a specified level.
 func (l *Logger) Log(i int, message LogMessage) {
 	str, er := ceeString(message)
 
+	// Handle the case where JSON serialization fails.
 	if er != nil {
-		err := l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Error serializing log message: %v (%s)" }`, message, er))
+		err := l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Error serializing log message: %v (%s)", "appname": "%s"}`, message, er, l.serviceName))
 		if err != nil {
 			log.Print(message)
 		}
@@ -76,8 +78,8 @@ func (l *Logger) Log(i int, message LogMessage) {
 	case LogCritical:
 		err = l.writer.Crit(str)
 	default:
-		err = l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Incorrect log enum provided: %d" }`, i))
-
+		l.Error("Invalid log level specified (%d); This is a bug!", i)
+		err = l.writer.Err(str)
 	}
 
 	if err != nil {
