@@ -60,4 +60,4 @@ test: unit-test functional-test check
 clean:
 	rm -f kask
 
-.PHONY: build functional-test unit-test integration-test test clean
+.PHONY: build functional-test unit-test integration-test deps check test clean
