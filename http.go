@@ -107,8 +107,8 @@ type HTTPHandler struct {
 	log    *Logger
 }
 
-// Dispatch accepts requests (of the base URI) for any HTTP method, and dispatches them to the appropriate handler.
-func (env *HTTPHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP accepts requests (of the base URI) for any HTTP method, and dispatches them to the appropriate handler.
+func (env *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		env.get(w, r)

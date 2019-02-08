@@ -20,10 +20,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -70,16 +71,19 @@ func main() {
 	// Close the database connection before returning from main()
 	defer store.Close()
 
-	keyMiddleware := NewParseKeyMiddleware(config.BaseURI)
-	handler := HTTPHandler{store, config, logger}
-	dispatcher := keyMiddleware(http.HandlerFunc(handler.Dispatch))
-	address := fmt.Sprintf("%s:%d", config.Address, config.Port)
+	// Kask CRUD operations
+	handler := &HTTPHandler{store, config, logger}
 
-	logger.Info("Starting service as http://%s%s", address, config.BaseURI)
+	// Wrap in middlewares
+	dispatcher := NewParseKeyMiddleware(config.BaseURI)(handler)
+	dispatcher = promhttp.InstrumentHandlerCounter(httpReqs, dispatcher)
+	dispatcher = promhttp.InstrumentHandlerDuration(duration, dispatcher)
 
-	promHandler := promhttp.InstrumentHandlerDuration(duration, promhttp.InstrumentHandlerCounter(httpReqs, dispatcher))
+	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
+	logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
 
-	http.Handle(config.BaseURI, promHandler)
+	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(address, nil))
+
+	log.Fatal(http.ListenAndServe(listen, nil))
 }

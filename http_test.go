@@ -65,11 +65,9 @@ func setUp(t *testing.T) (http.Handler, Store) {
 	store := newMockStore()
 	config, _ := NewConfig([]byte("default_ttl: 300000"))
 	logger := NewLogger("http_test")
-	handler := HTTPHandler{store, config, logger}
-	middleware := NewParseKeyMiddleware(prefixURI)
-	handle := middleware(http.HandlerFunc(handler.Dispatch))
+	handler := NewParseKeyMiddleware(prefixURI)(&HTTPHandler{store, config, logger})
 
-	return handle, store
+	return handler, store
 }
 
 func TestGetSuccess(t *testing.T) {
