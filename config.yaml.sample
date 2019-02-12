@@ -32,5 +32,13 @@ default_ttl: 86400
 # Cassandra connection information
 cassandra:
   hostname: 172.17.0.2
-  keyspace: kask_test_keyspace
-  table:    test_table
+  keyspace: kask
+  table:    values
+  # Enable Cassandra client encryption (optional)
+  tls:
+    # Full path to the certificate authority
+    ca: /etc/cassandra/tls/ca.pem
+    # Values for cert and key may be omitted if certifcation verification
+    # is not required.  However, if either is provided, both must be.
+    cert: /etc/cassandra/tls/cert.pem
+    key: /etc/cassandra/tls/key.pem

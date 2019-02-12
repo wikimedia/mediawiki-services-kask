@@ -28,54 +28,66 @@ import (
 
 const defaultTTL = 300
 
-func setup(t *testing.T) *CassandraStore {
+func setup(t *testing.T) (*CassandraStore, error) {
 	config, err := ReadConfig(*confFile)
 	if err != nil {
-		t.Error(err)
+		return nil, err
 	}
 
 	// Connect
-	store, err := NewCassandraStore(config.Cassandra.Hostname, config.Cassandra.Port, config.Cassandra.Keyspace, config.Cassandra.Table)
+	store, err := NewCassandraStore(config)
 	if err != nil {
-		t.Errorf("Error connecting to data store (%s)", err)
+		return nil, err
 	}
 
-	return store
+	return store, nil
 }
 
 func TestSetGetDelete(t *testing.T) {
-	store := setup(t)
+	store, err := setup(t)
+	if err != nil {
+		t.Errorf("Test setup failure: %s", err)
+		return
+	}
 
 	key := RandString(8)
 	val := RandString(32)
 
-	// Write
-	if err := store.Set(key, []byte(val), defaultTTL); err != nil {
-		t.Errorf("Error storing value (%s)", err)
-	}
+	t.Run("SET", func(t *testing.T) {
+		if err := store.Set(key, []byte(val), defaultTTL); err != nil {
+			t.Errorf("Error storing value (%s)", err)
+		}
+	})
 
-	// Read
-	if res, err := store.Get(key); err != nil {
-		t.Errorf("Error retrieving value (%s)", err)
-	} else {
-		if string(res.Value) != string(val) {
+	t.Run("GET#01", func(t *testing.T) {
+		if res, err := store.Get(key); err != nil {
+			t.Errorf("Error retrieving value (%s)", err)
+		} else {
+			if string(res.Value) != string(val) {
+				t.Fail()
+			}
+		}
+	})
+
+	t.Run("DELETE", func(t *testing.T) {
+		if err := store.Delete(key); err != nil {
+			t.Errorf("Error deleting value (%s)", err)
+		}
+	})
+
+	t.Run("GET#02", func(t *testing.T) {
+		if _, err := store.Get(key); err == nil {
 			t.Fail()
 		}
-	}
-
-	// Delete
-	if err := store.Delete(key); err != nil {
-		t.Errorf("Error deleting value (%s)", err)
-	}
-
-	// Read
-	if _, err := store.Get(key); err == nil {
-		t.Fail()
-	}
+	})
 }
 
 func TestTTL(t *testing.T) {
-	store := setup(t)
+	store, err := setup(t)
+	if err != nil {
+		t.Errorf("Test setup failure: %s", err)
+		return
+	}
 
 	key := RandString(8)
 	val := RandString(32)

@@ -38,6 +38,11 @@ type Config struct {
 		Port     int    `yaml:"port"`
 		Keyspace string `yaml:"keyspace"`
 		Table    string `yaml:"table"`
+		TLS      struct {
+			CaPath   string `yaml:"ca"`
+			CertPath string `yaml:"cert"`
+			KeyPath  string `yaml:"key"`
+		}
 	}
 }
 
@@ -82,6 +87,13 @@ func validate(config *Config) (*Config, error) {
 	if config.DefaultTTL < 0 {
 		return nil, errors.New("TTL must be a positive integer")
 	}
+
+	tls := config.Cassandra.TLS
+
+	if tls.CaPath == "" && (tls.CertPath != "" || tls.KeyPath != "") {
+		return nil, errors.New("a CA must be configured if key and cert are")
+	}
+
 	// TODO: Consider some other validations
 	return config, nil
 }

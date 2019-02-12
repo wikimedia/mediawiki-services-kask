@@ -62,7 +62,7 @@ func main() {
 
 	logger := NewLogger(config.ServiceName)
 
-	store, err := NewCassandraStore(config.Cassandra.Hostname, config.Cassandra.Port, config.Cassandra.Keyspace, config.Cassandra.Table)
+	store, err := NewCassandraStore(config)
 	if err != nil {
 		logger.Error("Error connecting to Cassandra: %s", err)
 		log.Fatal("Error connecting to Cassandra: ", err)

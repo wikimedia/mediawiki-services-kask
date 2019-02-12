@@ -46,19 +46,30 @@ type Datum struct {
 	TTL   int
 }
 
-func createSession(hostname string, port int, keyspace string) (*gocql.Session, error) {
-	cluster := gocql.NewCluster(hostname)
-	cluster.Port = port
-	cluster.Keyspace = keyspace
+func createSession(config *Config) (*gocql.Session, error) {
+	cluster := gocql.NewCluster(config.Cassandra.Hostname)
+	cluster.Port = config.Cassandra.Port
+	cluster.Keyspace = config.Cassandra.Keyspace
 	cluster.Consistency = gocql.LocalQuorum
+
+	tlsConf := config.Cassandra.TLS
+
+	if tlsConf.CaPath != "" {
+		cluster.SslOpts = &gocql.SslOptions{
+			CaPath: tlsConf.CaPath,
+		}
+		cluster.SslOpts.CertPath = tlsConf.CertPath
+		cluster.SslOpts.KeyPath = tlsConf.KeyPath
+	}
+
 	return cluster.CreateSession()
 }
 
 // NewCassandraStore constructs new instances of CassandraStore.
-func NewCassandraStore(hostname string, port int, keyspace string, table string) (*CassandraStore, error) {
-	session, err := createSession(hostname, port, keyspace)
+func NewCassandraStore(config *Config) (*CassandraStore, error) {
+	session, err := createSession(config)
 	if err == nil {
-		return &CassandraStore{session: session, Keyspace: keyspace, Table: table}, nil
+		return &CassandraStore{session: session, Keyspace: config.Cassandra.Keyspace, Table: config.Cassandra.Table}, nil
 	}
 	return nil, err
 }
