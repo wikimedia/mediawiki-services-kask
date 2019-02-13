@@ -43,6 +43,10 @@ type Config struct {
 			CertPath string `yaml:"cert"`
 			KeyPath  string `yaml:"key"`
 		}
+		Authentication struct {
+			Username string `yaml:"username"`
+			Password string `yaml:"password"`
+		}
 	}
 }
 
@@ -88,12 +92,48 @@ func validate(config *Config) (*Config, error) {
 		return nil, errors.New("TTL must be a positive integer")
 	}
 
-	tls := config.Cassandra.TLS
+	// Validate Cassandra client authentication settings
+	if err := validateCassandraAuthentication(config); err != nil {
+		return nil, err
+	}
 
-	if tls.CaPath == "" && (tls.CertPath != "" || tls.KeyPath != "") {
-		return nil, errors.New("a CA must be configured if key and cert are")
+	// Validate Cassandra client TLS settings
+	if err := validateCassandraTLS(config); err != nil {
+		return nil, err
 	}
 
 	// TODO: Consider some other validations
 	return config, nil
+}
+
+// validateCassandraAuthentication ensures a properly constructed Cassandra client authentication config.
+func validateCassandraAuthentication(config *Config) error {
+	auth := config.Cassandra.Authentication
+	// Either username and password are both zero (authentication not enabled), or both must be assigned.
+	if !mutuallyInclusive(auth.Username, auth.Password) {
+		return errors.New("Cassandra username/password values are mutually inclusive")
+	}
+	return nil
+}
+
+// validateCassandraTLS ensures a properly constructed Cassandra client TLS configuration.
+func validateCassandraTLS(config *Config) error {
+	tls := config.Cassandra.TLS
+	// If a ca is zero (unset), neither of cert/key can be.
+	if tls.CaPath == "" && (tls.CertPath != "" || tls.KeyPath != "") {
+		return errors.New("a CA must be configured if key and cert are")
+	}
+	// If ca is set, then either both cert and key are, or neither are.
+	if tls.CaPath != "" && !mutuallyInclusive(tls.CertPath, tls.KeyPath) {
+		return errors.New("Cassandra TLS key/cert values are mutually inclusive")
+	}
+	return nil
+}
+
+// mutuallyInclusive returns true if its arguments are either both zero, or neither are.
+func mutuallyInclusive(a string, b string) bool {
+	if (a != "" && b == "") || (b != "" && a == "") {
+		return false
+	}
+	return true
 }

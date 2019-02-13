@@ -37,6 +37,9 @@ cassandra:
   port: 9043
   keyspace: kittens
   table: data
+  authentication:
+    username: myuser
+    password: mypass
   tls:
     ca:   /path/to/ca
     key:  /path/to/key
@@ -52,9 +55,11 @@ cassandra:
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
 		AssertEquals(t, config.Cassandra.Table, "data", "Cassandra table name")
 		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
-		AssertEquals(t, config.Cassandra.TLS.CaPath, "/path/to/ca", "TLS CA path name")
-		AssertEquals(t, config.Cassandra.TLS.KeyPath, "/path/to/key", "TLS key path name")
-		AssertEquals(t, config.Cassandra.TLS.CertPath, "/path/to/cert", "TLS cert path name")
+		AssertEquals(t, config.Cassandra.Authentication.Username, "myuser", "Cassandra username")
+		AssertEquals(t, config.Cassandra.Authentication.Password, "mypass", "Cassandra password")
+		AssertEquals(t, config.Cassandra.TLS.CaPath, "/path/to/ca", "Cassandra TLS CA path name")
+		AssertEquals(t, config.Cassandra.TLS.KeyPath, "/path/to/key", "Cassandra TLS key path name")
+		AssertEquals(t, config.Cassandra.TLS.CertPath, "/path/to/cert", "Cassandra TLS cert path name")
 	} else {
 		t.Errorf("Failed to read configuration data: %v", err)
 	}
@@ -65,6 +70,27 @@ func TestNegativeTTL(t *testing.T) {
 	if _, err := NewConfig([]byte("default_ttl: -1")); err == nil {
 		t.Errorf("Negative TTLs are expected to fail validation!")
 	}
+}
+
+func TestAuthenticationValidation(t *testing.T) {
+	var data = `
+cassandra:
+  authentication:
+    %s: xxxxxxx
+`
+	t.Run("Username w/o password", func(t *testing.T) {
+		if _, err := NewConfig([]byte(fmt.Sprint(data, "username"))); err == nil {
+			t.Errorf("Unset password and assigned username expected to fail validation!")
+		}
+
+	})
+
+	t.Run("Password w/o username", func(t *testing.T) {
+		if _, err := NewConfig([]byte(fmt.Sprint(data, "password"))); err == nil {
+			t.Errorf("Unset username and assigned password expected to fail validation!")
+		}
+
+	})
 }
 
 func TestCaValidation(t *testing.T) {

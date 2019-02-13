@@ -62,6 +62,15 @@ func createSession(config *Config) (*gocql.Session, error) {
 		cluster.SslOpts.KeyPath = tlsConf.KeyPath
 	}
 
+	authConf := config.Cassandra.Authentication
+
+	if authConf.Username != "" {
+		cluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: authConf.Username,
+			Password: authConf.Password,
+		}
+	}
+
 	return cluster.CreateSession()
 }
 

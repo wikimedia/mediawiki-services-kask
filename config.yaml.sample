@@ -34,6 +34,10 @@ cassandra:
   hostname: 172.17.0.2
   keyspace: kask
   table:    values
+  # Enable password authentication (optional)
+  authentication:
+    username: jsmith
+    password: supersecret
   # Enable Cassandra client encryption (optional)
   tls:
     # Full path to the certificate authority
