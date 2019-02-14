@@ -1,0 +1,21 @@
+version: v3
+base: docker-registry.wikimedia.org/wikimedia-stretch:latest
+lives:
+  in: /go/src/gerrit.wikimedia.org/r/mediawiki/services/kask
+
+variants:
+  build:
+    base: golang:1.10-stretch
+    apt: { packages: [golang-github-gocql-gocql-dev, golang-gopkg-yaml.v2-dev, golang-github-prometheus-client-golang-dev] }
+  test:
+    includes: [build]
+    runs: { insecurely: true }
+    entrypoint: [make, test]
+  prep:
+    includes: [build]
+    builder:
+      command: [make, build]
+      requirements: [.]
+  production:
+    copies: prep
+    entrypoint: [./kask, --config, /etc/kask/config.yaml]

@@ -55,7 +55,7 @@ check: deps
 	golint -set_exit_status $(GO_PACKAGES)
 	go vet -composites=false $(GO_PACKAGES)
 
-test: unit-test functional-test check
+test: unit-test check
 
 clean:
 	rm -f kask
