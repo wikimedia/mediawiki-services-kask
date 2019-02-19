@@ -147,6 +147,13 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 		HTTPError(w, InternalServerError(r.URL.Path))
 		return
 	}
+
+	if len(body) == 0 {
+		env.log.Error("Request body is empty")
+		HTTPError(w, BadRequest(r.URL.Path))
+		return
+	}
+
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
 		env.log.Error("Unable to persist value (%s)", err)
