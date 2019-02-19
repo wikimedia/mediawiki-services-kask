@@ -115,6 +115,18 @@ func TestPost(t *testing.T) {
 	}
 }
 
+func TestPostEmptyBody(t *testing.T) {
+	handler, _ := setUp(t)
+	url := path.Join(prefixURI, "dog")
+	body := strings.NewReader("")
+	req := httptest.NewRequest("POST", url, body)
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	AssertEquals(t, http.StatusBadRequest, rr.Code, "Incorrect status code")
+}
+
 func TestPut(t *testing.T) {
 	handler, _ := setUp(t)
 	url := path.Join(prefixURI, "cat")
