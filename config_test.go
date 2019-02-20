@@ -32,6 +32,10 @@ listen_address:  172.17.0.2
 listen_port:     8080
 default_ttl:     1
 
+tls:
+  cert: /path/to/cert
+  key:  /path/to/key
+
 cassandra:
   hostname: 172.17.0.3
   port: 9043
@@ -50,6 +54,8 @@ cassandra:
 		AssertEquals(t, config.BaseURI, "/kittens/v1/", "URI prefix")
 		AssertEquals(t, config.Address, "172.17.0.2", "Bind address")
 		AssertEquals(t, config.Port, 8080, "Port number")
+		AssertEquals(t, config.TLS.CertPath, "/path/to/cert", "Kask TLS cert path name")
+		AssertEquals(t, config.TLS.KeyPath, "/path/to/key", "Kask TLS key path name")
 		AssertEquals(t, config.Cassandra.Hostname, "172.17.0.3", "Cassandra hostname")
 		AssertEquals(t, config.Cassandra.Port, 9043, "Cassandra port number")
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
@@ -70,6 +76,22 @@ func TestNegativeTTL(t *testing.T) {
 	if _, err := NewConfig([]byte("default_ttl: -1")); err == nil {
 		t.Errorf("Negative TTLs are expected to fail validation!")
 	}
+}
+
+func TestKaskTLSValidation(t *testing.T) {
+	t.Run("Unset cert w/ assigned key", func(t *testing.T) {
+		var data = []byte(fmt.Sprintf("tls:\n    key: /path/to/key"))
+		if _, err := NewConfig(data); err == nil {
+			t.Errorf("Unset cert with assigned key expected to fail validation!")
+		}
+	})
+
+	t.Run("Unset key w/ assigned cert", func(t *testing.T) {
+		var data = []byte(fmt.Sprintf("tls:\n    cert: /path/to/cert"))
+		if _, err := NewConfig(data); err == nil {
+			t.Errorf("Unset key with assigned cert expected to fail validation!")
+		}
+	})
 }
 
 func TestAuthenticationValidation(t *testing.T) {
