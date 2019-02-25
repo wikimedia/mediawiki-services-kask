@@ -80,10 +80,16 @@ func main() {
 	dispatcher = promhttp.InstrumentHandlerDuration(duration, dispatcher)
 
 	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
-	logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
 
 	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())
 
-	log.Fatal(http.ListenAndServe(listen, nil))
+	// TLS configuration
+	if config.TLS.CertPath != "" {
+		logger.Info("Starting service as https://%s%s", listen, config.BaseURI)
+		log.Fatal(http.ListenAndServeTLS(listen, config.TLS.CertPath, config.TLS.KeyPath, nil))
+	} else {
+		logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
+		log.Fatal(http.ListenAndServe(listen, nil))
+	}
 }

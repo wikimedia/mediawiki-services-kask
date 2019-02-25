@@ -29,6 +29,14 @@ listen_port: 8081
 # A time-to-live (in seconds) for stored values (0 disables)
 default_ttl: 86400
 
+# Enables Kask server encryption (optional)
+# If the certificate is signed by an authority, then the cert
+# file is a concatenation of both the server and authority certificates
+# (see also: https://golang.org/pkg/net/http/#ListenAndServeTLS).
+tls:
+  cert: /etc/kask/cert.pem
+  key: /etc/kask/key.pem
+
 # Cassandra connection information
 cassandra:
   hostname: 172.17.0.2

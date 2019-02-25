@@ -32,6 +32,10 @@ type Config struct {
 	Address     string `yaml:"listen_address"`
 	Port        int    `yaml:"listen_port"`
 	DefaultTTL  int    `yaml:"default_ttl"`
+	TLS         struct {
+		CertPath string `yaml:"cert"`
+		KeyPath  string `yaml:"key"`
+	}
 
 	Cassandra struct {
 		Hostname string `yaml:"hostname"`
@@ -92,6 +96,11 @@ func validate(config *Config) (*Config, error) {
 		return nil, errors.New("TTL must be a positive integer")
 	}
 
+	// Validate Kask TLS settings
+	if err := validateKaskTLS(config); err != nil {
+		return nil, err
+	}
+
 	// Validate Cassandra client authentication settings
 	if err := validateCassandraAuthentication(config); err != nil {
 		return nil, err
@@ -104,6 +113,15 @@ func validate(config *Config) (*Config, error) {
 
 	// TODO: Consider some other validations
 	return config, nil
+}
+
+// validateKaskTLS ensures a properly constructed TLS configuration.
+func validateKaskTLS(config *Config) error {
+	// Either CertPath and KeyPath are both zero (TLS not enabled), or both must be assigned.
+	if !mutuallyInclusive(config.TLS.CertPath, config.TLS.KeyPath) {
+		return errors.New("Kask cert/key values are mutually inclusive")
+	}
+	return nil
 }
 
 // validateCassandraAuthentication ensures a properly constructed Cassandra client authentication config.
