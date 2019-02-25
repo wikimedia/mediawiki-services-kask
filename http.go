@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -93,9 +92,10 @@ func HTTPError(w http.ResponseWriter, p Problem) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(p.Code)
 	j, err := json.MarshalIndent(p, "", "  ")
-	// FIXME: Think about proper errorhandling
+
 	if err != nil {
-		log.Printf("Oh noes; Failed to encode problem as JSON: %s", err)
+		fmt.Fprintln(w, "UNABLE TO MARSHALL JSON ERROR RESPONSE; THIS IS A BUG!")
+		return
 	}
 	fmt.Fprintln(w, string(j))
 }
@@ -120,6 +120,7 @@ func (env *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		env.delete(w, r)
 	default:
 		HTTPError(w, BadRequest(r.URL.Path))
+		env.log.Error("Unsupported HTTP method used: (%s)", r.Method)
 	}
 }
 
@@ -132,6 +133,7 @@ func (env *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
 			HTTPError(w, NotFound(r.URL.Path))
 		} else {
 			HTTPError(w, InternalServerError(r.URL.Path))
+			env.log.Error("GET request error: (%s)", err)
 		}
 		return
 	}
@@ -145,6 +147,7 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		HTTPError(w, InternalServerError(r.URL.Path))
+		env.log.Debug("Error reading body of POST request: (%s)", err)
 		return
 	}
 
@@ -174,6 +177,7 @@ func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	if err := env.store.Delete(key); err != nil {
 		HTTPError(w, InternalServerError(r.URL.Path))
+		env.log.Error("Error deleteing key: (%s)", err)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

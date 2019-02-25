@@ -87,8 +87,8 @@ func (l *Logger) Log(i int, message LogMessage) {
 	}
 }
 
-// Critical logs messages of severity CRITICAL.
-func (l *Logger) Critical(format string, v ...interface{}) {
+// Fatal logs messages of severity CRITICAL.
+func (l *Logger) Fatal(format string, v ...interface{}) {
 	l.Log(LogCritical, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
 }
 
