@@ -5,7 +5,7 @@ lives:
 
 variants:
   build:
-    base: golang:1.10-stretch
+    base: docker-registry.wikimedia.org/golang:1.11.5-1
     apt: { packages: [golang-github-gocql-gocql-dev, golang-gopkg-yaml.v2-dev, golang-github-prometheus-client-golang-dev] }
   test:
     includes: [build]
