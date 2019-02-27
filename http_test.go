@@ -195,3 +195,11 @@ func TestNewParseKeyMiddleware(t *testing.T) {
 	}
 
 }
+
+func TestHealthz(t *testing.T) {
+	handler := http.HandlerFunc(Healthz)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest("GET", "/healthz", nil))
+
+	AssertEquals(t, http.StatusOK, rr.Code, "Incorrect status code")
+}

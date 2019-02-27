@@ -82,6 +82,7 @@ func main() {
 
 	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/healthz", http.HandlerFunc(Healthz))
 
 	// TLS configuration
 	if config.TLS.CertPath != "" {

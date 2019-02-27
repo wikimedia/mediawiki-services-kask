@@ -252,3 +252,10 @@ func PrometheusInstrumentationMiddleware(counter *prometheus.CounterVec, obs *pr
 		counter.WithLabelValues(strconv.Itoa(d.status), r.Method).Inc()
 	})
 }
+
+// Healthz is an HTTP handler function that simply returns 200; Healthz serves as a
+// readiness test for Kubernetes.
+func Healthz(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
