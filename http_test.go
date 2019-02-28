@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -64,7 +65,7 @@ const prefixURI = "/sessions/v1/"
 func setUp(t *testing.T) (http.Handler, Store) {
 	store := newMockStore()
 	config, _ := NewConfig([]byte("default_ttl: 300000"))
-	logger := NewLogger("http_test")
+	logger := &Logger{os.Stdout, config.ServiceName}
 	handler := NewParseKeyMiddleware(prefixURI)(&HTTPHandler{store, config, logger})
 
 	return handler, store

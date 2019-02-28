@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -60,7 +61,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger := NewLogger(config.ServiceName)
+	logger := &Logger{os.Stdout, config.ServiceName}
 
 	store, err := NewCassandraStore(config)
 	if err != nil {

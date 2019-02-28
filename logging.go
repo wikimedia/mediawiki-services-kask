@@ -20,22 +20,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"log/syslog"
+	"io"
+	"time"
 )
 
 // Log levels
 const (
-	LogDebug    = iota
-	LogInfo     = iota
-	LogWarning  = iota
-	LogError    = iota
-	LogCritical = iota
+	LogDebug   = "DEBUG"
+	LogInfo    = "INFO"
+	LogWarning = "WARN"
+	LogError   = "ERROR"
+	LogFatal   = "FATAL"
 )
 
 // Logger formats and delivers log messages.
 type Logger struct {
-	writer      *syslog.Writer
+	writer      io.Writer
 	serviceName string
 }
 
@@ -43,80 +43,67 @@ type Logger struct {
 type LogMessage struct {
 	Msg     string `json:"msg"`
 	Appname string `json:"appname"`
-}
-
-// ceeString converts an interface into a JSON string prepended with @cee.
-func ceeString(m interface{}) (string, error) {
-	j, err := json.Marshal(m)
-
-	return "@cee: " + string(j), err
+	Time    string `json:"time"`
+	Level   string `json:"level"`
 }
 
 // Log records a message at a specified level.
-func (l *Logger) Log(i int, message LogMessage) {
-	str, er := ceeString(message)
-
-	// Handle the case where JSON serialization fails.
-	if er != nil {
-		err := l.writer.Err(fmt.Sprintf(`@cee: {"msg": "Error serializing log message: %v (%s)", "appname": "%s"}`, message, er, l.serviceName))
-		if err != nil {
-			log.Print(message)
-		}
+func (l *Logger) Log(level string, format string, v ...interface{}) {
+	// Level must be one of the constants declared above; We do not allow ad hoc logging levels.
+	if !validLevel(level) {
+		l.Error("Invalid log level specified (%s); This is a bug!", level)
+		level = LogError
 	}
 
-	var err error
+	// RFC3339 reads like a stricter version of ISO8601
+	message := LogMessage{fmt.Sprintf(format, v...), l.serviceName, time.Now().Format(time.RFC3339), level}
+	str, err := json.Marshal(message)
 
-	switch i {
-	case LogDebug:
-		err = l.writer.Debug(str)
-	case LogInfo:
-		err = l.writer.Info(str)
-	case LogWarning:
-		err = l.writer.Warning(str)
-	case LogError:
-		err = l.writer.Err(str)
-	case LogCritical:
-		err = l.writer.Crit(str)
-	default:
-		l.Error("Invalid log level specified (%d); This is a bug!", i)
-		err = l.writer.Err(str)
-	}
-
+	// Handle the (unlikely) case where JSON serialization fails.
 	if err != nil {
-		log.Print(message)
+		l.write(fmt.Sprintf(`{"msg": "Error serializing log message: %v (%s)", "appname": "%s"}`, message, err, l.serviceName))
+		return
 	}
+
+	// Log the messsage to the underlying io.Writer, one message per line.
+	l.write(string(str))
 }
 
 // Fatal logs messages of severity CRITICAL.
 func (l *Logger) Fatal(format string, v ...interface{}) {
-	l.Log(LogCritical, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
+	l.Log(LogFatal, format, v...)
 }
 
 // Error logs messages of severity ERROR.
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.Log(LogError, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
+	l.Log(LogError, format, v...)
 }
 
 // Warning logs messages of severity WARNING.
 func (l *Logger) Warning(format string, v ...interface{}) {
-	l.Log(LogWarning, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
+	l.Log(LogWarning, format, v...)
 }
 
 // Info logs messages of severity INFO.
 func (l *Logger) Info(format string, v ...interface{}) {
-	l.Log(LogInfo, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
+	l.Log(LogInfo, format, v...)
 }
 
 // Debug logs messages of severity DEBUG.
 func (l *Logger) Debug(format string, v ...interface{}) {
-	l.Log(LogDebug, LogMessage{fmt.Sprintf(format, v...), l.serviceName})
+	l.Log(LogDebug, format, v...)
 }
 
-// NewLogger constructs new instances of Logger.
-func NewLogger(serviceName string) *Logger {
-	writer, err := syslog.Dial("", "", syslog.LOG_WARNING|syslog.LOG_DAEMON, serviceName)
-	if err != nil {
-		log.Fatal(err)
+func (l *Logger) write(s string) {
+	// TODO: Should error handling be added to this? Our io.Writer will likely always be
+	// os.Stdout, what would we do if unable to write to stdout?
+	fmt.Fprintln(l.writer, s)
+}
+
+func validLevel(level string) bool {
+	switch level {
+	case LogDebug, LogInfo, LogWarning, LogError, LogFatal:
+		return true
 	}
-	return &Logger{writer, serviceName}
+	return false
 }
