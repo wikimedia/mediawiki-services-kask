@@ -33,17 +33,7 @@ unit-test: build
 integration-test: build
 	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=integration -config $(CONFIG)
 
-deps:
-	@if test -z "`which goimports`"; then \
-	    echo "goimports not found; Installing goimports..."; \
-	    go get golang.org/x/tools/cmd/goimports; \
-	fi
-	@if test -z "`which golint`"; then \
-	    echo "golint not found; Installing golint..."; \
-	    go get golang.org/x/lint/golint; \
-	fi
-
-check: deps
+check:
 	@if [ -n "`goimports -l *.go`" ]; then \
 	    echo "goimports: format errors detected" >&2; \
 	    false; \
@@ -53,11 +43,11 @@ check: deps
 	    false; \
 	fi
 	golint -set_exit_status $(GO_PACKAGES)
-	go vet -composites=false $(GO_PACKAGES)
+	go vet $(GO_PACKAGES)
 
 test: unit-test check
 
 clean:
 	rm -f kask
 
-.PHONY: build functional-test unit-test integration-test deps check test clean
+.PHONY: build functional-test unit-test integration-test check test clean

@@ -6,7 +6,14 @@ lives:
 variants:
   build:
     base: docker-registry.wikimedia.org/golang:1.11.5-1
-    apt: { packages: [ make, golang-github-gocql-gocql-dev, golang-gopkg-yaml.v2-dev, golang-github-prometheus-client-golang-dev ] }
+    apt:
+      packages:
+        - make
+        - golang-github-gocql-gocql-dev
+        - golang-gopkg-yaml.v2-dev
+        - golang-github-prometheus-client-golang-dev
+        - golang-golang-x-tools
+        - golint
   test:
     includes: [build]
     runs: { environment: { GOPATH: '/usr/share/gocode' }, insecurely: true }

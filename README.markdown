@@ -8,7 +8,12 @@ Kask is a (multi-master) replicated key-value service.
 Dependencies used target what has been shipped in Debian Stretch; To build and
 execute on a Debian:
 
-    $ apt install golang-github-gocql-gocql-dev golang-gopkg-yaml.v2-dev golang-github-prometheus-client-golang-dev
+    $ apt install \
+          golang-github-gocql-gocql-dev \
+          golang-gopkg-yaml.v2-dev \
+          golang-github-prometheus-client-golang-dev \
+          golang-golang-x-tools \
+          golint
     $ GOPATH=/usr/share/gocode make
 
 ### Executing Tests
