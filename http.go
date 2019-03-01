@@ -24,7 +24,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/gocql/gocql"
 )
@@ -213,4 +217,32 @@ func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// statusObserver wraps the existing ResponseWriter in order to track the code for later use in categorizing metrics.
+type statusObserver struct {
+	http.ResponseWriter
+	status int
+}
+
+// WriteHeader writes the HTTP response status code to the ResponseWriter and status.
+func (r *statusObserver) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// PrometheusInstrumentationMiddleware is a middleware that wraps the provided http.Handler
+// to count and observe the request and its duration with the provided CounterVec and HistogramVec.
+func PrometheusInstrumentationMiddleware(counter *prometheus.CounterVec, obs *prometheus.HistogramVec, next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now()
+
+		// Sets the response status to the default 200 for calls that do not call WriteHeader
+		d := statusObserver{w, 200}
+
+		next.ServeHTTP(&d, r)
+
+		obs.WithLabelValues(strconv.Itoa(d.status), r.Method).Observe(time.Since(now).Seconds())
+		counter.WithLabelValues(strconv.Itoa(d.status), r.Method).Inc()
+	})
 }

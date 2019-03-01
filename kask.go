@@ -77,9 +77,7 @@ func main() {
 
 	// Wrap in middlewares
 	dispatcher := NewParseKeyMiddleware(config.BaseURI)(handler)
-	dispatcher = promhttp.InstrumentHandlerCounter(httpReqs, dispatcher)
-	dispatcher = promhttp.InstrumentHandlerDuration(duration, dispatcher)
-
+	dispatcher = PrometheusInstrumentationMiddleware(httpReqs, duration, dispatcher)
 	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
 	http.Handle(config.BaseURI, dispatcher)
