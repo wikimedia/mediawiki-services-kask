@@ -137,7 +137,7 @@ func (env *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
 			HTTPError(w, NotFound(r.URL.Path))
 		} else {
 			HTTPError(w, InternalServerError(r.URL.Path))
-			env.log.Error("GET request error: (%s)", err)
+			env.log.Error("Error reading from storage (%v)", err)
 		}
 		return
 	}
@@ -163,7 +163,7 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
-		env.log.Error("Unable to persist value (%s)", err)
+		env.log.Error("Error writing to storage (%v)", err)
 		HTTPError(w, InternalServerError(r.URL.Path))
 		return
 	}
@@ -181,7 +181,7 @@ func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	if err := env.store.Delete(key); err != nil {
 		HTTPError(w, InternalServerError(r.URL.Path))
-		env.log.Error("Error deleteing key: (%s)", err)
+		env.log.Error("Error deleting in storage (%v)", err)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -213,6 +213,12 @@ func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
 			}
 
 			key := list[0]
+
+			if key == "" {
+				HTTPError(w, NotFound(r.URL.Path))
+				return
+			}
+
 			ctx := context.WithValue(r.Context(), kaskKey, key)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

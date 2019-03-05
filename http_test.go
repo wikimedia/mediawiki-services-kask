@@ -167,7 +167,7 @@ func TestNewParseKeyMiddleware(t *testing.T) {
 	}{
 		{path.Join(prefixURI, "cat"), "cat", 200},
 		{path.Join(prefixURI, "cat/dog"), "", 404},
-		{"/", "", 404},
+		{prefixURI, "", 404},
 		{"/something/else", "", 404},
 		{path.Join(prefixURI, "foo%3Fbar"), "foo?bar", 200},
 		{path.Join(prefixURI, "foo?bar"), "", 400},
