@@ -186,43 +186,41 @@ func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// NewParseKeyMiddleware is a function that accepts a prefix, and returns HTTP middleware that
-// parses a key from the remaining URI.
-func NewParseKeyMiddleware(baseURI string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			base := strings.Split(r.URL.Path, baseURI)[1:]
+// KeyParserMiddleware returns HTTP middleware that parses a key from the remaining URI, and adds it to
+// the request context.
+func KeyParserMiddleware(baseURI string, next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := strings.Split(r.URL.Path, baseURI)[1:]
 
-			if len(base) == 0 {
-				HTTPError(w, NotFound(r.URL.Path))
-				return
-			}
+		if len(base) == 0 {
+			HTTPError(w, NotFound(r.URL.Path))
+			return
+		}
 
-			// Checks if there are queries in URL
-			if len(r.URL.RawQuery) > 0 {
-				HTTPError(w, BadRequest(r.URL.Path))
-				return
-			}
+		// Checks if there are queries in URL
+		if len(r.URL.RawQuery) > 0 {
+			HTTPError(w, BadRequest(r.URL.Path))
+			return
+		}
 
-			list := strings.Split(base[0], "/")
+		list := strings.Split(base[0], "/")
 
-			// Checks if there are more than one key passed in in the URL after the baseURI
-			if len(list) > 1 {
-				HTTPError(w, NotFound(r.URL.Path))
-				return
-			}
+		// Checks if there are more than one key passed in in the URL after the baseURI
+		if len(list) > 1 {
+			HTTPError(w, NotFound(r.URL.Path))
+			return
+		}
 
-			key := list[0]
+		key := list[0]
 
-			if key == "" {
-				HTTPError(w, NotFound(r.URL.Path))
-				return
-			}
+		if key == "" {
+			HTTPError(w, NotFound(r.URL.Path))
+			return
+		}
 
-			ctx := context.WithValue(r.Context(), kaskKey, key)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+		ctx := context.WithValue(r.Context(), kaskKey, key)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // statusObserver wraps the existing ResponseWriter in order to track the code for later use in categorizing metrics.
