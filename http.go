@@ -104,6 +104,18 @@ func HTTPError(w http.ResponseWriter, p Problem) {
 	fmt.Fprintln(w, string(j))
 }
 
+// getRequestID returns a request id
+func getRequestID(r *http.Request) string {
+	id := r.Header.Get("X-Request-ID")
+
+	// Sets a default for request id when it is not forwarded in the X-Request-ID header
+	if id == "" {
+		return "00000000-0000-0000-0000-000000000000"
+	}
+
+	return id
+}
+
 // HTTPHandler encapsulates the Kask request handlers and their dependencies.
 type HTTPHandler struct {
 	store  Store
@@ -124,7 +136,7 @@ func (env *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		env.delete(w, r)
 	default:
 		HTTPError(w, BadRequest(r.URL.Path))
-		env.log.Error("Unsupported HTTP method used: (%s)", r.Method)
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Unsupported HTTP method used: (%s)", r.Method)
 	}
 }
 
@@ -137,7 +149,7 @@ func (env *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
 			HTTPError(w, NotFound(r.URL.Path))
 		} else {
 			HTTPError(w, InternalServerError(r.URL.Path))
-			env.log.Error("Error reading from storage (%v)", err)
+			env.log.RequestID(getRequestID(r)).Log(LogError, "Error reading from storage (%v)", err)
 		}
 		return
 	}
@@ -151,19 +163,19 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		HTTPError(w, InternalServerError(r.URL.Path))
-		env.log.Debug("Error reading body of POST request: (%s)", err)
+		env.log.RequestID(getRequestID(r)).Log(LogDebug, "Error reading body of POST request: (%s)", err)
 		return
 	}
 
 	if len(body) == 0 {
-		env.log.Error("Request body is empty")
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Request body is empty")
 		HTTPError(w, BadRequest(r.URL.Path))
 		return
 	}
 
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
-		env.log.Error("Error writing to storage (%v)", err)
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Error writing to storage (%v)", err)
 		HTTPError(w, InternalServerError(r.URL.Path))
 		return
 	}
@@ -181,7 +193,7 @@ func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	key := r.Context().Value(kaskKey).(string)
 	if err := env.store.Delete(key); err != nil {
 		HTTPError(w, InternalServerError(r.URL.Path))
-		env.log.Error("Error deleting in storage (%v)", err)
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Error deleting in storage (%v)", err)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

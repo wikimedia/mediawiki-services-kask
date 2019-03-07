@@ -45,10 +45,28 @@ type LogMessage struct {
 	Appname string `json:"appname"`
 	Time    string `json:"time"`
 	Level   string `json:"level"`
+	ReqID   string `json:"request_id,omitempty"`
 }
 
-// Log records a message at a specified level.
-func (l *Logger) Log(level string, format string, v ...interface{}) {
+// ScopedLogger formats and delivers a Logger and optional LogMessage attributes.
+type ScopedLogger struct {
+	logger    *Logger
+	requestID string
+}
+
+// Log creates a LogMessage at the specified level.
+func (s *ScopedLogger) Log(level string, format string, v ...interface{}) {
+	message := LogMessage{Msg: fmt.Sprintf(format, v...), ReqID: s.requestID}
+	s.logger.log(level, message)
+}
+
+// RequestID records the request id and returns a ScopedLogger.
+func (l *Logger) RequestID(id string) *ScopedLogger {
+	return &ScopedLogger{logger: l, requestID: id}
+}
+
+// Log populates the remaining attributes of LogMessage at a specified level and logs the message.
+func (l *Logger) log(level string, message LogMessage) {
 	// Level must be one of the constants declared above; We do not allow ad hoc logging levels.
 	if !validLevel(level) {
 		l.Error("Invalid log level specified (%s); This is a bug!", level)
@@ -56,7 +74,10 @@ func (l *Logger) Log(level string, format string, v ...interface{}) {
 	}
 
 	// RFC3339 reads like a stricter version of ISO8601
-	message := LogMessage{fmt.Sprintf(format, v...), l.serviceName, time.Now().Format(time.RFC3339), level}
+	message.Time = time.Now().Format(time.RFC3339)
+	message.Appname = l.serviceName
+	message.Level = level
+
 	str, err := json.Marshal(message)
 
 	// Handle the (unlikely) case where JSON serialization fails.
@@ -71,27 +92,27 @@ func (l *Logger) Log(level string, format string, v ...interface{}) {
 
 // Fatal logs messages of severity CRITICAL.
 func (l *Logger) Fatal(format string, v ...interface{}) {
-	l.Log(LogFatal, format, v...)
+	l.log(LogFatal, LogMessage{Msg: fmt.Sprintf(format, v...)})
 }
 
 // Error logs messages of severity ERROR.
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.Log(LogError, format, v...)
+	l.log(LogError, LogMessage{Msg: fmt.Sprintf(format, v...)})
 }
 
 // Warning logs messages of severity WARNING.
 func (l *Logger) Warning(format string, v ...interface{}) {
-	l.Log(LogWarning, format, v...)
+	l.log(LogWarning, LogMessage{Msg: fmt.Sprintf(format, v...)})
 }
 
 // Info logs messages of severity INFO.
 func (l *Logger) Info(format string, v ...interface{}) {
-	l.Log(LogInfo, format, v...)
+	l.log(LogInfo, LogMessage{Msg: fmt.Sprintf(format, v...)})
 }
 
 // Debug logs messages of severity DEBUG.
 func (l *Logger) Debug(format string, v ...interface{}) {
-	l.Log(LogDebug, format, v...)
+	l.log(LogDebug, LogMessage{Msg: fmt.Sprintf(format, v...)})
 }
 
 func (l *Logger) write(s string) {
