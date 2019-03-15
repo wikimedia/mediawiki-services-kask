@@ -26,4 +26,4 @@ variants:
       requirements: [.]
   production:
     copies: prep
-    entrypoint: [./kask, --config, /etc/kask/config.yaml]
+    entrypoint: [./kask, --config, /etc/mediawiki-services-kask/config.yaml]
