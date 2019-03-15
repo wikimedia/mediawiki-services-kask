@@ -61,7 +61,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger := &Logger{os.Stdout, config.ServiceName}
+	logger, err := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	store, err := NewCassandraStore(config)
 	if err != nil {

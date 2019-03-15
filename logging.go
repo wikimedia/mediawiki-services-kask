@@ -19,24 +19,27 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 )
 
 // Log levels
 const (
-	LogDebug   = "DEBUG"
-	LogInfo    = "INFO"
-	LogWarning = "WARN"
-	LogError   = "ERROR"
-	LogFatal   = "FATAL"
+	LogDebug   = iota
+	LogInfo    = iota
+	LogWarning = iota
+	LogError   = iota
+	LogFatal   = iota
 )
 
 // Logger formats and delivers log messages.
 type Logger struct {
 	writer      io.Writer
 	serviceName string
+	logLevel    int
 }
 
 // LogMessage represents JSON serializable log messages.
@@ -55,7 +58,7 @@ type ScopedLogger struct {
 }
 
 // Log creates a LogMessage at the specified level.
-func (s *ScopedLogger) Log(level string, format string, v ...interface{}) {
+func (s *ScopedLogger) Log(level int, format string, v ...interface{}) {
 	message := LogMessage{Msg: fmt.Sprintf(format, v...), ReqID: s.requestID}
 	s.logger.log(level, message)
 }
@@ -65,18 +68,22 @@ func (l *Logger) RequestID(id string) *ScopedLogger {
 	return &ScopedLogger{logger: l, requestID: id}
 }
 
-// Log populates the remaining attributes of LogMessage at a specified level and logs the message.
-func (l *Logger) log(level string, message LogMessage) {
+// log populates the remaining attributes of LogMessage at a specified level and logs the message.
+func (l *Logger) log(level int, message LogMessage) {
 	// Level must be one of the constants declared above; We do not allow ad hoc logging levels.
 	if !validLevel(level) {
-		l.Error("Invalid log level specified (%s); This is a bug!", level)
+		l.Error("Invalid log level specified (%s); This is a bug!", LevelString(level))
 		level = LogError
+	}
+
+	if level < l.logLevel {
+		return
 	}
 
 	// RFC3339 reads like a stricter version of ISO8601
 	message.Time = time.Now().Format(time.RFC3339)
 	message.Appname = l.serviceName
-	message.Level = level
+	message.Level = LevelString(level)
 
 	str, err := json.Marshal(message)
 
@@ -121,10 +128,51 @@ func (l *Logger) write(s string) {
 	fmt.Fprintln(l.writer, s)
 }
 
-func validLevel(level string) bool {
+func validLevel(level int) bool {
 	switch level {
 	case LogDebug, LogInfo, LogWarning, LogError, LogFatal:
 		return true
 	}
 	return false
+}
+
+// LevelString converts log integers to strings
+func LevelString(level int) string {
+	switch level {
+	case LogDebug:
+		return "DEBUG"
+	case LogInfo:
+		return "INFO"
+	case LogWarning:
+		return "WARNING"
+	case LogError:
+		return "ERROR"
+	case LogFatal:
+		return "FATAL"
+	default:
+		return ""
+	}
+}
+
+// NewLogger creates a new instance of Logger
+func NewLogger(writer io.Writer, serviceName string, logLevel string) (*Logger, error) {
+	var level int
+	var err error
+
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		level = LogDebug
+	case "info":
+		level = LogInfo
+	case "warning":
+		level = LogWarning
+	case "error":
+		level = LogError
+	case "fatal":
+		level = LogFatal
+	default:
+		err = errors.New("Invalid/Unsupported logLevel specified")
+	}
+
+	return &Logger{writer, serviceName, level}, err
 }

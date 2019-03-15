@@ -29,6 +29,10 @@ listen_port: 8081
 # A time-to-live (in seconds) for stored values (0 disables)
 default_ttl: 86400
 
+# A log message filter that will only write messages at the specified log level and higher.
+# Valid log_level in increasing severity are: debug, info, warning, error and fatal
+log_level: error
+
 # Enables Kask server encryption (optional)
 # If the certificate is signed by an authority, then the cert
 # file is a concatenation of both the server and authority certificates

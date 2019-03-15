@@ -31,6 +31,7 @@ base_uri:        /kittens/v1
 listen_address:  172.17.0.2
 listen_port:     8080
 default_ttl:     1
+log_level:       error
 
 tls:
   cert: /path/to/cert
@@ -61,6 +62,7 @@ cassandra:
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
 		AssertEquals(t, config.Cassandra.Table, "data", "Cassandra table name")
 		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
+		AssertEquals(t, config.LogLevel, "error", "Log level")
 		AssertEquals(t, config.Cassandra.Authentication.Username, "myuser", "Cassandra username")
 		AssertEquals(t, config.Cassandra.Authentication.Password, "mypass", "Cassandra password")
 		AssertEquals(t, config.Cassandra.TLS.CaPath, "/path/to/ca", "Cassandra TLS CA path name")
@@ -75,6 +77,12 @@ cassandra:
 func TestNegativeTTL(t *testing.T) {
 	if _, err := NewConfig([]byte("default_ttl: -1")); err == nil {
 		t.Errorf("Negative TTLs are expected to fail validation!")
+	}
+}
+
+func TestInvalidLogLevel(t *testing.T) {
+	if _, err := NewConfig([]byte("log_level: emergency")); err == nil {
+		t.Errorf("Invalid/unsupported log levels are expected to fail validation!")
 	}
 }
 

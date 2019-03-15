@@ -32,6 +32,7 @@ type Config struct {
 	Address     string `yaml:"listen_address"`
 	Port        int    `yaml:"listen_port"`
 	DefaultTTL  int    `yaml:"default_ttl"`
+	LogLevel    string `yaml:"log_level"`
 	TLS         struct {
 		CertPath string `yaml:"cert"`
 		KeyPath  string `yaml:"key"`
@@ -72,6 +73,7 @@ func NewConfig(data []byte) (*Config, error) {
 		Address:     "localhost",
 		Port:        8080,
 		DefaultTTL:  86400,
+		LogLevel:    "error",
 	}
 	config.Cassandra.Hostname = "localhost"
 	config.Cassandra.Port = 9042
@@ -96,6 +98,11 @@ func validate(config *Config) (*Config, error) {
 		return nil, errors.New("TTL must be a positive integer")
 	}
 
+	// Validate log level
+	if err := validateLogLevel(config); err != nil {
+		return nil, err
+	}
+
 	// Validate Kask TLS settings
 	if err := validateKaskTLS(config); err != nil {
 		return nil, err
@@ -113,6 +120,15 @@ func validate(config *Config) (*Config, error) {
 
 	// TODO: Consider some other validations
 	return config, nil
+}
+
+// validateLogLevel ensures a valid log level
+func validateLogLevel(config *Config) error {
+	switch strings.ToLower(config.LogLevel) {
+	case "debug", "info", "warning", "error", "fatal":
+		return nil
+	}
+	return errors.New("Invalid/unsupported log level specified")
 }
 
 // validateKaskTLS ensures a properly constructed TLS configuration.

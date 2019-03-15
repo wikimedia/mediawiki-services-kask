@@ -65,7 +65,7 @@ const prefixURI = "/sessions/v1/"
 func setUp(t *testing.T) (http.Handler, Store) {
 	store := newMockStore()
 	config, _ := NewConfig([]byte("default_ttl: 300000"))
-	logger := &Logger{os.Stdout, config.ServiceName}
+	logger, _ := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
 	handler := KeyParserMiddleware(prefixURI, &HTTPHandler{store, config, logger})
 
 	return handler, store
