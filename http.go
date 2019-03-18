@@ -50,7 +50,7 @@ type Problem struct {
 func BadRequest(instance string) Problem {
 	return Problem{
 		Code:     400,
-		Type:     "https://www.mediawiki.org/wiki/probs/bad-request",
+		Type:     "https://www.mediawiki.org/wiki/Kask/errors/bad_request",
 		Title:    "Bad request",
 		Detail:   "The request was incorrect or malformed",
 		Instance: instance,
@@ -61,7 +61,7 @@ func BadRequest(instance string) Problem {
 func NotAuthorized(instance string) Problem {
 	return Problem{
 		Code:     401,
-		Type:     "https://www.mediawiki.org/wiki/probs/not-authorized",
+		Type:     "https://www.mediawiki.org/wiki/Kask/errors/not_authorized",
 		Title:    "Not authorized",
 		Detail:   "Unable to authorize request",
 		Instance: instance,
@@ -72,7 +72,7 @@ func NotAuthorized(instance string) Problem {
 func NotFound(instance string) Problem {
 	return Problem{
 		Code:     404,
-		Type:     "https://www.mediawiki.org/wiki/probs/not-found",
+		Type:     "https://www.mediawiki.org/wiki/Kask/errors/not_found",
 		Title:    "Not found",
 		Detail:   "The value you requested was not found",
 		Instance: instance,
@@ -83,7 +83,7 @@ func NotFound(instance string) Problem {
 func InternalServerError(instance string) Problem {
 	return Problem{
 		Code:     500,
-		Type:     "https://www.mediawiki.org/wiki/probs/internal-server-error",
+		Type:     "https://www.mediawiki.org/wiki/Kask/errors/server_error",
 		Title:    "Internal server error",
 		Detail:   "The server encountered an error with your request",
 		Instance: instance,
