@@ -73,7 +73,7 @@ func NewConfig(data []byte) (*Config, error) {
 		Address:     "localhost",
 		Port:        8080,
 		DefaultTTL:  86400,
-		LogLevel:    "error",
+		LogLevel:    "info",
 	}
 	config.Cassandra.Hostname = "localhost"
 	config.Cassandra.Port = 9042
