@@ -19,6 +19,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -124,11 +125,11 @@ func validate(config *Config) (*Config, error) {
 
 // validateLogLevel ensures a valid log level
 func validateLogLevel(config *Config) error {
-	switch strings.ToLower(config.LogLevel) {
-	case "debug", "info", "warning", "error", "fatal":
+	switch strings.ToUpper(config.LogLevel) {
+	case "DEBUG", "INFO", "WARNING", "ERROR", "FATAL":
 		return nil
 	}
-	return errors.New("Invalid/unsupported log level specified")
+	return fmt.Errorf("Unsupported log level: %s", config.LogLevel)
 }
 
 // validateKaskTLS ensures a properly constructed TLS configuration.
@@ -155,7 +156,7 @@ func validateCassandraTLS(config *Config) error {
 	tls := config.Cassandra.TLS
 	// If a ca is zero (unset), neither of cert/key can be.
 	if tls.CaPath == "" && (tls.CertPath != "" || tls.KeyPath != "") {
-		return errors.New("a CA must be configured if key and cert are")
+		return errors.New("a Cassandra CA must be configured if key and cert are")
 	}
 	// If ca is set, then either both cert and key are, or neither are.
 	if tls.CaPath != "" && !mutuallyInclusive(tls.CertPath, tls.KeyPath) {

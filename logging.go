@@ -19,7 +19,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -44,11 +43,11 @@ type Logger struct {
 
 // LogMessage represents JSON serializable log messages.
 type LogMessage struct {
-	Msg     string `json:"msg"`
-	Appname string `json:"appname"`
-	Time    string `json:"time"`
-	Level   string `json:"level"`
-	ReqID   string `json:"request_id,omitempty"`
+	Msg       string `json:"msg"`
+	Appname   string `json:"appname"`
+	Time      string `json:"time"`
+	Level     string `json:"level"`
+	RequestID string `json:"request_id,omitempty"`
 }
 
 // ScopedLogger formats and delivers a Logger and optional LogMessage attributes.
@@ -59,7 +58,7 @@ type ScopedLogger struct {
 
 // Log creates a LogMessage at the specified level.
 func (s *ScopedLogger) Log(level int, format string, v ...interface{}) {
-	message := LogMessage{Msg: fmt.Sprintf(format, v...), ReqID: s.requestID}
+	message := LogMessage{Msg: fmt.Sprintf(format, v...), RequestID: s.requestID}
 	s.logger.log(level, message)
 }
 
@@ -68,14 +67,19 @@ func (l *Logger) RequestID(id string) *ScopedLogger {
 	return &ScopedLogger{logger: l, requestID: id}
 }
 
-// log populates the remaining attributes of LogMessage at a specified level and logs the message.
+// This is an internal implementation; The application should log messages
+// using one of the level-specific methods, or a ScopedLogger as appropriate.
+// Note: This method is responsible for assigning the Time, Appname, and
+// Level attributes of LogMessage structs, any existing values WILL be
+// overwritten.
 func (l *Logger) log(level int, message LogMessage) {
 	// Level must be one of the constants declared above; We do not allow ad hoc logging levels.
 	if !validLevel(level) {
-		l.Error("Invalid log level specified (%s); This is a bug!", LevelString(level))
+		l.Error("Invalid log level specified (%d); This is a bug!", level)
 		level = LogError
 	}
 
+	// Skip if level is below what we're configured to log.
 	if level < l.logLevel {
 		return
 	}
@@ -157,22 +161,21 @@ func LevelString(level int) string {
 // NewLogger creates a new instance of Logger
 func NewLogger(writer io.Writer, serviceName string, logLevel string) (*Logger, error) {
 	var level int
-	var err error
 
-	switch strings.ToLower(logLevel) {
-	case "debug":
+	switch strings.ToUpper(logLevel) {
+	case LevelString(LogDebug):
 		level = LogDebug
-	case "info":
+	case LevelString(LogInfo):
 		level = LogInfo
-	case "warning":
+	case LevelString(LogWarning):
 		level = LogWarning
-	case "error":
+	case LevelString(LogError):
 		level = LogError
-	case "fatal":
+	case LevelString(LogFatal):
 		level = LogFatal
 	default:
-		err = errors.New("Invalid/Unsupported logLevel specified")
+		return nil, fmt.Errorf("Unsupported log level: %s", logLevel)
 	}
 
-	return &Logger{writer, serviceName, level}, err
+	return &Logger{writer, serviceName, level}, nil
 }

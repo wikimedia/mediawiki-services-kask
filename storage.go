@@ -24,7 +24,7 @@ import (
 )
 
 // Store is an interface to the underlying data store.
-// Note: For the most part, an interface exists only to enable mocking in tests, not as a means of
+// Note: An interface exists to enable mocking in tests, not as a means of
 // making storage pluggable.
 type Store interface {
 	Set(string, []byte, int) error
@@ -83,8 +83,8 @@ func NewCassandraStore(config *Config) (*CassandraStore, error) {
 	return nil, err
 }
 
-// Set stores a new value associated with a key.
-// Values expire after TTL seconds; Values with a TTL of 0 do not expire.
+// Set stores a new value associated with a key. Values expire after TTL
+// seconds; Values with a TTL of 0 do not expire.
 func (s *CassandraStore) Set(key string, value []byte, ttl int) error {
 	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (key, value) VALUES (?,?) USING TTL ?`, s.Keyspace, s.Table)
 	return s.session.Query(query, key, value, ttl).Consistency(gocql.LocalQuorum).Exec()

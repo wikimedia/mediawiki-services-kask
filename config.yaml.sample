@@ -29,13 +29,12 @@ listen_port: 8081
 # A time-to-live (in seconds) for stored values (0 disables)
 default_ttl: 86400
 
-# Log levels in increasing severity are: debug, info, warning, error and fatal
+# Log level, one of (in increasing severity): debug, info, warning, error and fatal
 log_level: info
 
-# Enables Kask server encryption (optional)
-# If the certificate is signed by an authority, then the cert
-# file is a concatenation of both the server and authority certificates
-# (see also: https://golang.org/pkg/net/http/#ListenAndServeTLS).
+# Kask server encryption (optional)
+# NOTE: If the certificate is signed by an authority, then the file specified
+# here should be a concatenation of both the server and authority certificates.
 tls:
   cert: /etc/kask/cert.pem
   key: /etc/kask/key.pem
@@ -45,11 +44,11 @@ cassandra:
   hostname: 172.17.0.2
   keyspace: kask
   table:    values
-  # Enable password authentication (optional)
+  # Password authentication (optional)
   authentication:
     username: jsmith
     password: supersecret
-  # Enable Cassandra client encryption (optional)
+  # Cassandra client encryption (optional)
   tls:
     # Full path to the certificate authority
     ca: /etc/cassandra/tls/ca.pem

@@ -30,7 +30,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// RandString returns a random alphanumeric string on `n` length
+// RandString returns a random alphanumeric string of `n` length
 func RandString(n int) string {
 	b := make([]byte, n)
 	for i := range b {
@@ -39,7 +39,7 @@ func RandString(n int) string {
 	return string(b)
 }
 
-// AssertEquals evaluates whether two values are equals, and fails the test if they are not
+// AssertEquals evaluates whether two values are equal, and fails the test if they are not
 func AssertEquals(t *testing.T, a interface{}, b interface{}, msg string) {
 	if a == b {
 		return

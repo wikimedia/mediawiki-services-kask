@@ -29,7 +29,7 @@ func TestNewConfig(t *testing.T) {
 service_name:    kittens
 base_uri:        /kittens/v1
 listen_address:  172.17.0.2
-listen_port:     8080
+listen_port:     8888
 default_ttl:     1
 log_level:       error
 
@@ -54,15 +54,15 @@ cassandra:
 		AssertEquals(t, config.ServiceName, "kittens", "Service name")
 		AssertEquals(t, config.BaseURI, "/kittens/v1/", "URI prefix")
 		AssertEquals(t, config.Address, "172.17.0.2", "Bind address")
-		AssertEquals(t, config.Port, 8080, "Port number")
+		AssertEquals(t, config.Port, 8888, "Port number")
 		AssertEquals(t, config.TLS.CertPath, "/path/to/cert", "Kask TLS cert path name")
 		AssertEquals(t, config.TLS.KeyPath, "/path/to/key", "Kask TLS key path name")
+		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
+		AssertEquals(t, config.LogLevel, "error", "Log level")
 		AssertEquals(t, config.Cassandra.Hostname, "172.17.0.3", "Cassandra hostname")
 		AssertEquals(t, config.Cassandra.Port, 9043, "Cassandra port number")
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
 		AssertEquals(t, config.Cassandra.Table, "data", "Cassandra table name")
-		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
-		AssertEquals(t, config.LogLevel, "error", "Log level")
 		AssertEquals(t, config.Cassandra.Authentication.Username, "myuser", "Cassandra username")
 		AssertEquals(t, config.Cassandra.Authentication.Password, "mypass", "Cassandra password")
 		AssertEquals(t, config.Cassandra.TLS.CaPath, "/path/to/ca", "Cassandra TLS CA path name")
@@ -102,7 +102,7 @@ func TestKaskTLSValidation(t *testing.T) {
 	})
 }
 
-func TestAuthenticationValidation(t *testing.T) {
+func TestCassandraAuthenticationValidation(t *testing.T) {
 	var data = `
 cassandra:
   authentication:

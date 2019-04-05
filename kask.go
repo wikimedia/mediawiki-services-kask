@@ -70,7 +70,7 @@ func main() {
 	store, err := NewCassandraStore(config)
 	if err != nil {
 		logger.Fatal("Error connecting to Cassandra: %s", err)
-		log.Fatal("Error connecting to Cassandra: ", err)
+		os.Exit(1)
 	}
 
 	// Close the database connection before returning from main()
@@ -83,11 +83,11 @@ func main() {
 	dispatcher := KeyParserMiddleware(config.BaseURI, handler)
 	dispatcher = PrometheusInstrumentationMiddleware(httpReqs, duration, dispatcher)
 
-	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
-
 	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/healthz", http.HandlerFunc(Healthz))
+
+	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
 	// TLS configuration
 	if config.TLS.CertPath != "" {

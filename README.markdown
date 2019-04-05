@@ -1,7 +1,7 @@
 kask
 ====
 
-Kask is a (multi-master) replicated key-value service.
+Kask is a (multi-master) replicated key-value storage service.
 
 ## Building
 

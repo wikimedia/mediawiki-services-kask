@@ -168,15 +168,15 @@ func (env *HTTPHandler) post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(body) == 0 {
-		env.log.RequestID(getRequestID(r)).Log(LogError, "Request body is empty")
 		HTTPError(w, BadRequest(r.URL.Path))
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Request body is empty")
 		return
 	}
 
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	if err := env.store.Set(key, body, env.config.DefaultTTL); err != nil {
-		env.log.RequestID(getRequestID(r)).Log(LogError, "Error writing to storage (%v)", err)
 		HTTPError(w, InternalServerError(r.URL.Path))
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Error writing to storage (%v)", err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
