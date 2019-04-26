@@ -80,12 +80,17 @@ func main() {
 	handler := &HTTPHandler{store, config, logger}
 
 	// Wrap in middlewares
-	dispatcher := KeyParserMiddleware(config.BaseURI, handler)
+	dispatcher := ValidatingKeyParserMiddleware(config.BaseURI, handler)
 	dispatcher = PrometheusInstrumentationMiddleware(httpReqs, duration, dispatcher)
 
 	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/healthz", http.HandlerFunc(Healthz))
+
+	// Serve OpenAPI specification (if so-configured).
+	if config.OpenAPISpec != "" {
+		http.Handle("/openapi", OpenAPI(config, logger))
+	}
 
 	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
 

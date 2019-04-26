@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -198,9 +200,9 @@ func (env *HTTPHandler) delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// KeyParserMiddleware returns HTTP middleware that parses a key from the remaining URI, and adds it to
+// ValidatingKeyParserMiddleware returns HTTP middleware that parses a key from the remaining URI, and adds it to
 // the request context.
-func KeyParserMiddleware(baseURI string, next http.Handler) http.HandlerFunc {
+func ValidatingKeyParserMiddleware(baseURI string, next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		base := strings.Split(r.URL.Path, baseURI)[1:]
 
@@ -268,4 +270,25 @@ func PrometheusInstrumentationMiddleware(counter *prometheus.CounterVec, obs *pr
 func Healthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+}
+
+// OpenAPI is an HTTP handler function that serves an OpenAPI specfication file.  The file is assumed to
+// be in YAML format, and can be templated to include the configured base URI in path statements.
+func OpenAPI(config *Config, logger *Logger) http.HandlerFunc {
+	tmpl, err := template.New(path.Base(config.OpenAPISpec)).ParseFiles(config.OpenAPISpec)
+	if err != nil {
+		logger.Error("Unable to parse %s as template: %s", config.OpenAPISpec, err)
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err != nil {
+			HTTPError(w, InternalServerError(r.URL.Path))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/x-yaml")
+		if exerr := tmpl.Execute(w, config); exerr != nil {
+			logger.Error("Unable to template OpenAPI spec: %s", exerr)
+		}
+	})
 }

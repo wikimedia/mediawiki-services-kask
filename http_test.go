@@ -66,7 +66,7 @@ func setUp(t *testing.T) (http.Handler, Store) {
 	store := newMockStore()
 	config, _ := NewConfig([]byte("default_ttl: 300000"))
 	logger, _ := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
-	handler := KeyParserMiddleware(prefixURI, &HTTPHandler{store, config, logger})
+	handler := ValidatingKeyParserMiddleware(prefixURI, &HTTPHandler{store, config, logger})
 
 	return handler, store
 }
@@ -159,7 +159,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestKeyParserMiddleware(t *testing.T) {
+func TestValidatingKeyParserMiddleware(t *testing.T) {
 	testCases := []struct {
 		url        string
 		expected   string
@@ -183,7 +183,7 @@ func TestKeyParserMiddleware(t *testing.T) {
 			req := httptest.NewRequest("GET", tc.url, nil)
 			rr := httptest.NewRecorder()
 
-			parser := KeyParserMiddleware(prefixURI, handler)
+			parser := ValidatingKeyParserMiddleware(prefixURI, handler)
 
 			parser.ServeHTTP(rr, req)
 

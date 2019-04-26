@@ -59,6 +59,7 @@ cassandra:
 		AssertEquals(t, config.TLS.KeyPath, "/path/to/key", "Kask TLS key path name")
 		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
 		AssertEquals(t, config.LogLevel, "error", "Log level")
+		AssertEquals(t, config.OpenAPISpec, "", "OpenAPI specification file")
 		AssertEquals(t, config.Cassandra.Hostname, "172.17.0.3", "Cassandra hostname")
 		AssertEquals(t, config.Cassandra.Port, 9043, "Cassandra port number")
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")

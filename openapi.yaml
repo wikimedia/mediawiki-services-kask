@@ -1,0 +1,160 @@
+# Copyright 2019 Clara Andrew-Wani <candrew@wikimedia.org>, Eric Evans <eevans@wikimedia.org>,
+# and Wikimedia Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+openapi: 3.0.2
+
+info:
+  title: kask
+  description: |
+      [Kask](https://www.mediawiki.org/wiki/Kask) is a multi-master replicated,
+      opaque key-value data store.
+  version: "1.0.0"
+
+paths:
+  "{{- .BaseURI -}}{key}":
+    parameters:
+      - name: key
+        in: path
+        description: The unique identifier (key) of a value
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+    get:
+      description: Retrieves a value for the provided key
+      responses:
+        200:
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+      # x-amples is a sequence of request/response pairs which can be issued to
+      # test service availability (for example by using
+      # https://gerrit.wikimedia.org/r/admin/projects/operations/software/service-checker
+      # to generate Icinga alerts).
+      #
+      # The stanza below defines a GET request for a given key, and validates
+      # that the response body corresponds to the expected value.  Please note
+      # that if the value expected is written in another x-amples, the first
+      # of these requests will likely fail.
+      x-amples:
+        - title: Get value for key
+          request:
+            params:
+              key: KASK:K:INTEGRATION_TEST_KEY
+            headers:
+              Accept: application/octet-stream
+          response:
+            status: 200
+            headers:
+              Content-Type: application/octet-stream
+            body: KASK:V:INTEGRATION_TEST_VALUE
+      # Enable/disable service monitoring based on x-amples.
+      x-monitor: true
+    post:
+      description: Stores a value associated with a key
+      responses:
+        201:
+          description: Created
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+      # x-amples is a sequence of request/response pairs which can be issued to
+      # test service availability (for example by using
+      # https://gerrit.wikimedia.org/r/admin/projects/operations/software/service-checker
+      # to generate Icinga alerts).
+      #
+      # The stanza below defines a POST request for a given key, and writes the
+      # value specified by the body.  Please be aware that this operates in the
+      # live storage namespace; Keys should be chosen carefully to ensure that
+      # they will never collide with production data!
+      x-amples:
+        - title: Store value for key
+          request:
+            params:
+              key: KASK:K:INTEGRATION_TEST_KEY
+            headers:
+              Content-Type: application/octet-stream
+            body: KASK:V:INTEGRATION_TEST_VALUE
+          response:
+            status: 201
+      # Enable/disable service monitoring based on x-amples.
+      x-monitor: true
+    delete:
+      description: Deletes the value associated with a key
+      responses:
+        204:
+          description: No content
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+components:
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC7807'
+    NotAuthorized:
+      description: Not Authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC7807'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC7807'
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC7807'
+  schemas:
+    RFC7807:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string

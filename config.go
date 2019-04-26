@@ -34,6 +34,7 @@ type Config struct {
 	Port        int    `yaml:"listen_port"`
 	DefaultTTL  int    `yaml:"default_ttl"`
 	LogLevel    string `yaml:"log_level"`
+	OpenAPISpec string `yaml:"openapi_spec"`
 	TLS         struct {
 		CertPath string `yaml:"cert"`
 		KeyPath  string `yaml:"key"`
