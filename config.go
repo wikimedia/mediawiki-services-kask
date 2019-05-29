@@ -41,10 +41,10 @@ type Config struct {
 	}
 
 	Cassandra struct {
-		Hostname string `yaml:"hostname"`
-		Port     int    `yaml:"port"`
-		Keyspace string `yaml:"keyspace"`
-		Table    string `yaml:"table"`
+		Hosts    []string `yaml:"hosts"`
+		Port     int      `yaml:"port"`
+		Keyspace string   `yaml:"keyspace"`
+		Table    string   `yaml:"table"`
 		TLS      struct {
 			CaPath   string `yaml:"ca"`
 			CertPath string `yaml:"cert"`
@@ -77,7 +77,7 @@ func NewConfig(data []byte) (*Config, error) {
 		DefaultTTL:  86400,
 		LogLevel:    "info",
 	}
-	config.Cassandra.Hostname = "localhost"
+	config.Cassandra.Hosts = []string{"localhost"}
 	config.Cassandra.Port = 9042
 	config.Cassandra.Keyspace = "kask"
 	config.Cassandra.Table = "values"

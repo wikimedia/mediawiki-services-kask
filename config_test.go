@@ -38,7 +38,10 @@ tls:
   key:  /path/to/key
 
 cassandra:
-  hostname: 172.17.0.3
+  hosts:
+    - 172.17.0.3
+    - 192.168.100.5
+    - 10.10.1.14
   port: 9043
   keyspace: kittens
   table: data
@@ -60,7 +63,7 @@ cassandra:
 		AssertEquals(t, config.DefaultTTL, 1, "TTL value")
 		AssertEquals(t, config.LogLevel, "error", "Log level")
 		AssertEquals(t, config.OpenAPISpec, "", "OpenAPI specification file")
-		AssertEquals(t, config.Cassandra.Hostname, "172.17.0.3", "Cassandra hostname")
+		AssertEquals(t, len(config.Cassandra.Hosts), 3, "Number of Cassandra hostnames")
 		AssertEquals(t, config.Cassandra.Port, 9043, "Cassandra port number")
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
 		AssertEquals(t, config.Cassandra.Table, "data", "Cassandra table name")

@@ -47,7 +47,7 @@ type Datum struct {
 }
 
 func createSession(config *Config) (*gocql.Session, error) {
-	cluster := gocql.NewCluster(config.Cassandra.Hostname)
+	cluster := gocql.NewCluster(config.Cassandra.Hosts...)
 	cluster.Port = config.Cassandra.Port
 	cluster.Keyspace = config.Cassandra.Keyspace
 	cluster.Consistency = gocql.LocalQuorum
