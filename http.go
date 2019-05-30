@@ -106,7 +106,7 @@ func HTTPError(w http.ResponseWriter, p Problem) {
 	fmt.Fprintln(w, string(j))
 }
 
-// getRequestID returns a request id
+// getRequestID returns the value of an `X-Request-ID` header when present, or a default otherwise.
 func getRequestID(r *http.Request) string {
 	id := r.Header.Get("X-Request-ID")
 
@@ -156,7 +156,10 @@ func (env *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value.Value)
+
+	if _, err := w.Write(value.Value); err != nil {
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Error writing HTTP response body: (%s)", err)
+	}
 }
 
 // POST requests
