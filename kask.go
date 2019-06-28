@@ -62,7 +62,6 @@ func main() {
 	}
 
 	logger, err := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
-
 	if err != nil {
 		log.Fatal(err)
 	}

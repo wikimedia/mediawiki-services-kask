@@ -288,8 +288,8 @@ func OpenAPI(config *Config, logger *Logger) http.HandlerFunc {
 			HTTPError(w, InternalServerError(r.URL.Path))
 			return
 		}
-		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/x-yaml")
+		w.WriteHeader(http.StatusOK)
 		if exerr := tmpl.Execute(w, config); exerr != nil {
 			logger.Error("Unable to template OpenAPI spec: %s", exerr)
 		}

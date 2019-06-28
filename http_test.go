@@ -21,12 +21,16 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/gocql/gocql"
 )
@@ -202,4 +206,45 @@ func TestHealthz(t *testing.T) {
 	handler.ServeHTTP(rr, httptest.NewRequest("GET", "/healthz", nil))
 
 	AssertEquals(t, http.StatusOK, rr.Code, "Incorrect status code")
+}
+
+func TestOpenAPI(t *testing.T) {
+	config, err := NewConfig([]byte("openapi_spec: ./openapi.yaml"))
+	if err != nil {
+		t.Fatal("Unable to create Config instance")
+	}
+
+	logger, err := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
+	if err != nil {
+		t.Fatal("Unable to create Logger instance")
+	}
+
+	handler := http.HandlerFunc(OpenAPI(config, logger))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest("GET", "/openapi", nil))
+
+	AssertEquals(t, http.StatusOK, rr.Code, "Incorrect status code")
+	AssertEquals(t, "application/x-yaml", rr.Header().Get("Content-Type"), "Incorrect Content-Type header")
+
+	// Calculate checksums for the response body and spec file, and validate that they match
+	respHasher := sha256.New()
+	fileHasher := sha256.New()
+
+	if _, err := io.Copy(respHasher, rr.Body); err != nil {
+		t.Fatalf("Error generating checksum of response: %s", err)
+	}
+
+	// Template the on-disk file (to match what the HTTP handler does)
+	tmpl, err := template.New(path.Base(config.OpenAPISpec)).ParseFiles(config.OpenAPISpec)
+	if err != nil {
+		t.Fatalf("Unable to parse %s as template: %s", config.OpenAPISpec, err)
+	}
+
+	if err := tmpl.Execute(fileHasher, config); err != nil {
+		t.Fatalf("Error generating checksum of OpenAPI spec: %s", err)
+	}
+
+	respSum := fmt.Sprintf("%x", respHasher.Sum(nil))
+	fileSum := fmt.Sprintf("%x", fileHasher.Sum(nil))
+	AssertEquals(t, fileSum, respSum, "OpenAPI response does not match file checksum")
 }
