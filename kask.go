@@ -23,6 +23,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,7 +32,7 @@ import (
 var (
 	confFile = flag.String("config", "/etc/kask/config.yaml", "Path to the configuration file")
 
-	httpReqs = prometheus.NewCounterVec(
+	promHTTPReqsCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "Count of HTTP requests processed, partitioned by status code and HTTP method.",
@@ -39,7 +40,7 @@ var (
 		[]string{"code", "method"},
 	)
 
-	duration = prometheus.NewHistogramVec(
+	promDurationHistoVec = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
 			Help:    "A histogram of latencies for requests, partitioned by status code and HTTP method.",
@@ -47,10 +48,24 @@ var (
 		},
 		[]string{"code", "method"},
 	)
+
+	// These values are passed in at build time using -ldflags
+	version   = "unknown"
+	gitTag    = "unknown"
+	buildHost = "unknown"
+	buildDate = "unknown"
+
+	promBuildInfoGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name:        "kask_build_information",
+			Help:        "Build information",
+			ConstLabels: map[string]string{"version": version, "git": gitTag, "build_date": buildDate, "build_host": buildHost, "go_version": runtime.Version()},
+		})
 )
 
 func init() {
-	prometheus.MustRegister(httpReqs, duration)
+	prometheus.MustRegister(promHTTPReqsCounterVec, promDurationHistoVec, promBuildInfoGauge)
+	promBuildInfoGauge.Set(1)
 }
 
 func main() {
@@ -66,6 +81,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	logger.Info("Initializing Kask %s (Git: %s, Go version: %s, Build host: %s, Timestamp: %s)...", version, gitTag, runtime.Version(), buildHost, buildDate)
+
 	store, err := NewCassandraStore(config)
 	if err != nil {
 		logger.Fatal("Error connecting to Cassandra: %s", err)
@@ -80,7 +97,7 @@ func main() {
 
 	// Wrap in middlewares
 	dispatcher := ValidatingKeyParserMiddleware(config.BaseURI, handler)
-	dispatcher = PrometheusInstrumentationMiddleware(httpReqs, duration, dispatcher)
+	dispatcher = PrometheusInstrumentationMiddleware(promHTTPReqsCounterVec, promDurationHistoVec, dispatcher)
 
 	http.Handle(config.BaseURI, dispatcher)
 	http.Handle("/metrics", promhttp.Handler())

@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
@@ -273,6 +274,31 @@ func PrometheusInstrumentationMiddleware(counter *prometheus.CounterVec, obs *pr
 func Healthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
+	meta := struct {
+		Version   string `json:"version"`
+		GitTag    string `json:"git"`
+		BuildDate string `json:"build_data"`
+		BuildHost string `json:"build_host"`
+		GoVersion string `json:"go_version"`
+	}{
+		version,
+		gitTag,
+		buildDate,
+		buildHost,
+		runtime.Version(),
+	}
+
+	output, err := json.MarshalIndent(meta, "", "  ")
+
+	// In the (unlikely) event JSON serialization fails, fail-safe; The primary function of this
+	// endpoint is determining readiness, not reporting build metadata.
+	if err != nil {
+		w.Write([]byte("{}"))
+		return
+	}
+
+	w.Write([]byte(output))
 }
 
 // OpenAPI is an HTTP handler function that serves an OpenAPI specfication file.  The file is assumed to

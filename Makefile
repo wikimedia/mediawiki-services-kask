@@ -15,14 +15,32 @@
 # limitations under the License.
 
 
-GOPATH ?= /usr/share/gocode
+GOPATH      ?= /usr/share/gocode
 GOTEST_ARGS ?= 
-CONFIG ?= config.yaml.test
+CONFIG      ?= config.yaml.test
 GO_PACKAGES := ./...
+
+VERSION     = 1.0.0
+GIT_TAG     = $(shell /usr/bin/git describe)
+BUILD_DATE  = $(shell date -Iseconds)
+
+GO_LDFLAGS  = -X main.version=$(VERSION)
+GO_LDFLAGS += -X main.gitTag=$(if $(GIT_TAG),$(GIT_TAG),unknown)
+GO_LDFLAGS += -X main.buildDate=$(if $(BUILD_DATE),$(BUILD_DATE),unknown)
+GO_LDFLAGS += -X main.buildHost=$(if $(HOSTNAME),$(HOSTNAME),unknown)
 
 
 build:
-	GOPATH=$(GOPATH) go build kask.go config.go http.go logging.go storage.go
+	GOPATH=$(GOPATH) go build -ldflags "$(GO_LDFLAGS)" kask.go config.go http.go logging.go storage.go
+
+	@echo
+	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	@echo "VERSION ......: $(VERSION)"
+	@echo "GIT TAG ......: $(GIT_TAG)"
+	@echo "BUILD HOST ...: $(HOSTNAME)"
+	@echo "BUILD DATE ...: $(BUILD_DATE)"
+	@echo "GO VERSION ...: $(word 3, $(shell go version))"
+	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 functional-test: build
 	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=functional -config $(CONFIG)

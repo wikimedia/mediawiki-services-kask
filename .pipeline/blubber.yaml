@@ -14,6 +14,7 @@ variants:
         - golang-github-prometheus-client-golang-dev
         - golang-golang-x-tools
         - golint
+        - git
   test:
     includes: [build]
     runs: { environment: { GOPATH: '/usr/share/gocode' }, insecurely: true }

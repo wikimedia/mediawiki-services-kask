@@ -13,7 +13,8 @@ execute on a Debian:
           golang-gopkg-yaml.v2-dev \
           golang-github-prometheus-client-golang-dev \
           golang-golang-x-tools \
-          golint
+          golint \
+          git
     $ GOPATH=/usr/share/gocode make
 
 ### Executing Tests
