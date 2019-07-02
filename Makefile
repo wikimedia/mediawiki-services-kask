@@ -20,12 +20,10 @@ GOTEST_ARGS ?=
 CONFIG      ?= config.yaml.test
 GO_PACKAGES := ./...
 
-VERSION     = 1.0.0
-GIT_TAG     = $(shell /usr/bin/git describe)
+VERSION     = $(shell /usr/bin/git describe)
 BUILD_DATE  = $(shell date -Iseconds)
 
-GO_LDFLAGS  = -X main.version=$(VERSION)
-GO_LDFLAGS += -X main.gitTag=$(if $(GIT_TAG),$(GIT_TAG),unknown)
+GO_LDFLAGS  = -X main.version=$(if $(VERSION),$(VERSION),unknown)
 GO_LDFLAGS += -X main.buildDate=$(if $(BUILD_DATE),$(BUILD_DATE),unknown)
 GO_LDFLAGS += -X main.buildHost=$(if $(HOSTNAME),$(HOSTNAME),unknown)
 
@@ -36,7 +34,6 @@ build:
 	@echo
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	@echo "VERSION ......: $(VERSION)"
-	@echo "GIT TAG ......: $(GIT_TAG)"
 	@echo "BUILD HOST ...: $(HOSTNAME)"
 	@echo "BUILD DATE ...: $(BUILD_DATE)"
 	@echo "GO VERSION ...: $(word 3, $(shell go version))"

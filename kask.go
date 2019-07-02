@@ -51,7 +51,6 @@ var (
 
 	// These values are passed in at build time using -ldflags
 	version   = "unknown"
-	gitTag    = "unknown"
 	buildHost = "unknown"
 	buildDate = "unknown"
 
@@ -59,7 +58,7 @@ var (
 		prometheus.GaugeOpts{
 			Name:        "kask_build_info",
 			Help:        "Build information",
-			ConstLabels: map[string]string{"version": version, "git": gitTag, "build_date": buildDate, "build_host": buildHost, "go_version": runtime.Version()},
+			ConstLabels: map[string]string{"version": version, "build_date": buildDate, "build_host": buildHost, "go_version": runtime.Version()},
 		})
 )
 
@@ -81,7 +80,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger.Info("Initializing Kask %s (Git: %s, Go version: %s, Build host: %s, Timestamp: %s)...", version, gitTag, runtime.Version(), buildHost, buildDate)
+	logger.Info("Initializing Kask %s (Go version: %s, Build host: %s, Timestamp: %s)...", version, runtime.Version(), buildHost, buildDate)
 
 	store, err := NewCassandraStore(config)
 	if err != nil {
