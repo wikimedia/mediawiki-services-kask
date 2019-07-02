@@ -57,7 +57,7 @@ var (
 
 	promBuildInfoGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name:        "kask_build_information",
+			Name:        "kask_build_info",
 			Help:        "Build information",
 			ConstLabels: map[string]string{"version": version, "git": gitTag, "build_date": buildDate, "build_host": buildHost, "go_version": runtime.Version()},
 		})
