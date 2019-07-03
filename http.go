@@ -277,7 +277,7 @@ func Healthz(w http.ResponseWriter, r *http.Request) {
 
 	meta := struct {
 		Version   string `json:"version"`
-		BuildDate string `json:"build_data"`
+		BuildDate string `json:"build_date"`
 		BuildHost string `json:"build_host"`
 		GoVersion string `json:"go_version"`
 	}{
