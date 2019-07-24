@@ -1,4 +1,4 @@
-version: v3
+version: v4
 base: docker-registry.wikimedia.org/wikimedia-stretch:latest
 lives:
   in: /go/src/gerrit.wikimedia.org/r/mediawiki/services/kask
@@ -6,6 +6,7 @@ lives:
 variants:
   build:
     base: docker-registry.wikimedia.org/golang:1.11.5-1
+    copies: [local]
     apt:
       packages:
         - make
@@ -26,5 +27,5 @@ variants:
       command: [make, build]
       requirements: [.]
   production:
-    copies: prep
+    copies: [prep]
     entrypoint: [./kask, --config, /etc/mediawiki-services-kask/config.yaml]
