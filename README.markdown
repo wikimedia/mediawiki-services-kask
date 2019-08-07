@@ -22,6 +22,10 @@ execute on a Debian:
     $ make unit-test
     $ CONFIG=config.yaml.test make functional-test
 
+#### Executing Tests and Benchmarks
+
+    $ make GOTEST_ARGS="-bench=. -benchmem" test
+
 *NOTE: `config.yaml.test` is excluded from version control and is recommended for local configuration.*
 
 ## Running

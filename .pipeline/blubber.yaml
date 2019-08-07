@@ -17,7 +17,11 @@ variants:
         - git
   test:
     includes: [build]
-    runs: { environment: { GOPATH: '/usr/share/gocode' }, insecurely: true }
+    runs:
+      environment:
+        GOPATH: '/usr/share/gocode'
+        GOTEST_ARGS: '-bench=. -benchmem'
+      insecurely: true
     entrypoint: [make, test]
   prep:
     includes: [build]

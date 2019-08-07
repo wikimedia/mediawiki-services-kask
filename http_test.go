@@ -24,6 +24,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -265,4 +266,115 @@ func TestOpenAPI(t *testing.T) {
 	respSum := fmt.Sprintf("%x", respHasher.Sum(nil))
 	fileSum := fmt.Sprintf("%x", fileHasher.Sum(nil))
 	AssertEquals(t, fileSum, respSum, "OpenAPI response does not match file checksum")
+}
+
+func setUpBenchmark(t *testing.B) (http.Handler, Store) {
+	handler, store, err := setUp()
+	if err != nil {
+		t.Fatalf("Error encountered in benchmark setup: %s", err)
+		return nil, nil
+	}
+	return handler, store
+}
+
+func BenchmarkGet(b *testing.B) {
+	handler, _ := setUpBenchmark(b)
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	url := fmt.Sprintf("%s/sessions/v1/%s", server.URL, RandString(16))
+	val := strings.NewReader(RandString(32))
+	client := &http.Client{}
+
+	res, err := client.Post(url, "application/octet-stream", val)
+
+	if err != nil {
+		b.Fatalf("Error making POST request: %s", err)
+		return
+	}
+	if res.StatusCode != http.StatusCreated {
+		b.Fatalf("POST request failed (status: %d)", res.StatusCode)
+		return
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		res, err := client.Get(url)
+
+		if err != nil {
+			b.Fatalf("Client request failed: %s", err)
+			break
+		}
+		if res.StatusCode != http.StatusOK {
+			b.Fatalf("Request failed (status: %d)", res.StatusCode)
+			break
+		}
+		if _, err = ioutil.ReadAll(res.Body); err != nil {
+			b.Fatalf("Unable to read response body: %s", err)
+			break
+		}
+		if err = res.Body.Close(); err != nil {
+			b.Fatalf("Unable to close response body: %s", err)
+			break
+		}
+	}
+}
+
+func BenchmarkPost(b *testing.B) {
+	handler, _ := setUpBenchmark(b)
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	val := strings.NewReader(RandString(32))
+	url := fmt.Sprintf("%s/sessions/v1/%s", server.URL, RandString(16))
+	client := &http.Client{}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		res, err := client.Post(url, "application/octet-stream", val)
+
+		if err != nil {
+			b.Fatalf("Client request failed: %s", err)
+			break
+		}
+		if res.StatusCode != http.StatusCreated {
+			b.Fatalf("Request failed (status: %d)", res.StatusCode)
+			break
+		}
+
+		// Reset the body reader
+		val.Seek(0, io.SeekStart)
+	}
+}
+
+func BenchmarkDelete(b *testing.B) {
+	handler, _ := setUpBenchmark(b)
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	url := fmt.Sprintf("%s/sessions/v1/%s", server.URL, RandString(16))
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		b.Fatalf("Error creating request object: %s", err)
+	}
+
+	client := &http.Client{}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		res, err := client.Do(req)
+
+		if err != nil {
+			b.Fatalf("Client request failed: %s", err)
+			break
+		}
+		if res.StatusCode != http.StatusNoContent {
+			b.Fatalf("Request failed (status: %d)", res.StatusCode)
+			break
+		}
+	}
 }
