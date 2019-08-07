@@ -66,51 +66,69 @@ func newMockStore() *mockStore {
 
 const prefixURI = "/sessions/v1/"
 
-func setUp(t *testing.T) (http.Handler, Store) {
-	store := newMockStore()
-	config, _ := NewConfig([]byte("default_ttl: 300000"))
-	logger, _ := NewLogger(os.Stdout, config.ServiceName, config.LogLevel)
-	handler := ValidatingKeyParserMiddleware(prefixURI, &HTTPHandler{store, config, logger})
+func setUp() (http.Handler, Store, error) {
+	var store Store
+	var config *Config
+	var logger *Logger
+	var err error
 
+	store = newMockStore()
+	if config, err = NewConfig([]byte("default_ttl: 300000")); err != nil {
+		return nil, nil, err
+	}
+	if logger, err = NewLogger(os.Stdout, config.ServiceName, config.LogLevel); err != nil {
+		return nil, nil, err
+	}
+
+	handler := &HTTPHandler{store, config, logger}
+	return ValidatingKeyParserMiddleware(prefixURI, handler), store, nil
+}
+
+func setUpTesting(t *testing.T) (http.Handler, Store) {
+	handler, store, err := setUp()
+	if err != nil {
+		t.Fatalf("Error encountered in test setup: %s", err)
+		return nil, nil
+	}
 	return handler, store
 }
 
 func TestGetSuccess(t *testing.T) {
-	handler, store := setUp(t)
-	url := path.Join(prefixURI, "foo")
-	req := httptest.NewRequest("GET", url, nil)
-	rr := httptest.NewRecorder()
+	handler, store := setUpTesting(t)
+
+	req := httptest.NewRequest("GET", path.Join(prefixURI, "foo"), nil)
+	res := httptest.NewRecorder()
 	expected := "bar"
 
-	store.Set("foo", []byte("bar"), 300000)
+	store.Set("foo", []byte(expected), 300000)
 
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(res, req)
 
-	AssertEquals(t, http.StatusOK, rr.Code, "Incorrect status code")
-	AssertEquals(t, expected, rr.Body.String(), "Unexpected value")
+	AssertEquals(t, http.StatusOK, res.Code, "Incorrect status code")
+	AssertEquals(t, expected, res.Body.String(), "Unexpected value")
 }
 
 func TestGetNotFound(t *testing.T) {
-	handler, _ := setUp(t)
-	url := path.Join(prefixURI, "cat")
-	req := httptest.NewRequest("GET", url, nil)
-	rr := httptest.NewRecorder()
+	handler, _ := setUpTesting(t)
 
-	handler.ServeHTTP(rr, req)
+	req := httptest.NewRequest("GET", path.Join(prefixURI, "cat"), nil)
+	res := httptest.NewRecorder()
 
-	AssertEquals(t, http.StatusNotFound, rr.Code, "Incorrect status code")
+	handler.ServeHTTP(res, req)
+
+	AssertEquals(t, http.StatusNotFound, res.Code, "Incorrect status code")
 }
 
 func TestPost(t *testing.T) {
-	handler, store := setUp(t)
-	url := path.Join(prefixURI, "cat")
+	handler, store := setUpTesting(t)
+
 	body := strings.NewReader("meow")
-	req := httptest.NewRequest("POST", url, body)
-	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", path.Join(prefixURI, "cat"), body)
+	res := httptest.NewRecorder()
 
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(res, req)
 
-	AssertEquals(t, http.StatusCreated, rr.Code, "Incorrect status code")
+	AssertEquals(t, http.StatusCreated, res.Code, "Incorrect status code")
 
 	value, _ := store.Get("cat")
 	expected := []byte("meow")
@@ -121,40 +139,40 @@ func TestPost(t *testing.T) {
 }
 
 func TestPostEmptyBody(t *testing.T) {
-	handler, _ := setUp(t)
-	url := path.Join(prefixURI, "dog")
+	handler, _ := setUpTesting(t)
+
 	body := strings.NewReader("")
-	req := httptest.NewRequest("POST", url, body)
-	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", path.Join(prefixURI, "dog"), body)
+	res := httptest.NewRecorder()
 
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(res, req)
 
-	AssertEquals(t, http.StatusBadRequest, rr.Code, "Incorrect status code")
+	AssertEquals(t, http.StatusBadRequest, res.Code, "Incorrect status code")
 }
 
 func TestPut(t *testing.T) {
-	handler, _ := setUp(t)
-	url := path.Join(prefixURI, "cat")
+	handler, _ := setUpTesting(t)
+
 	body := strings.NewReader("roar")
-	req := httptest.NewRequest("PUT", url, body)
-	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("PUT", path.Join(prefixURI, "cat"), body)
+	res := httptest.NewRecorder()
 
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(res, req)
 
-	AssertEquals(t, http.StatusBadRequest, rr.Code, "Incorrect status code")
+	AssertEquals(t, http.StatusBadRequest, res.Code, "Incorrect status code")
 }
 
 func TestDelete(t *testing.T) {
-	handler, store := setUp(t)
-	url := path.Join(prefixURI, "cat")
-	req := httptest.NewRequest("DELETE", url, nil)
-	rr := httptest.NewRecorder()
+	handler, store := setUpTesting(t)
+
+	req := httptest.NewRequest("DELETE", path.Join(prefixURI, "cat"), nil)
+	res := httptest.NewRecorder()
 
 	store.Set("cat", []byte("meow"), 300000)
 
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(res, req)
 
-	AssertEquals(t, http.StatusNoContent, rr.Code, "Incorrect status code")
+	AssertEquals(t, http.StatusNoContent, res.Code, "Incorrect status code")
 
 	value, _ := store.Get("cat")
 
