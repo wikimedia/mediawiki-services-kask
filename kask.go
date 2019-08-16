@@ -110,14 +110,11 @@ func main() {
 	listen := fmt.Sprintf("%s:%d", config.Address, config.Port)
 
 	// TLS configuration
-	// if config.TLS.CertPath != "" {
-	// 	logger.Info("Starting service as https://%s%s", listen, config.BaseURI)
-	// 	log.Fatal(http.ListenAndServeTLS(listen, config.TLS.CertPath, config.TLS.KeyPath, nil))
-	// } else {
-	// 	logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
-	// 	log.Fatal(http.ListenAndServe(listen, nil))
-	// }
-
-	logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
-	log.Fatal(http.ListenAndServe(listen, nil))
+	if config.TLS.CertPath != "" {
+		logger.Info("Starting service as https://%s%s", listen, config.BaseURI)
+		log.Fatal(http.ListenAndServeTLS(listen, config.TLS.CertPath, config.TLS.KeyPath, nil))
+	} else {
+		logger.Info("Starting service as http://%s%s", listen, config.BaseURI)
+		log.Fatal(http.ListenAndServe(listen, nil))
+	}
 }
