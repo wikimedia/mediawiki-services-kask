@@ -20,7 +20,7 @@ GOTEST_ARGS ?=
 CONFIG      ?= config.yaml.test
 GO_PACKAGES := ./...
 
-VERSION     = $(shell /usr/bin/git describe)
+VERSION     = $(shell /usr/bin/git describe --always)
 BUILD_DATE  = $(shell date -Iseconds)
 
 GO_LDFLAGS  = -X main.version=$(if $(VERSION),$(VERSION),unknown)
