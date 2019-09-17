@@ -45,6 +45,7 @@ type Config struct {
 		Port     int      `yaml:"port"`
 		Keyspace string   `yaml:"keyspace"`
 		Table    string   `yaml:"table"`
+		LocalDC  string   `yaml:"local_dc"`
 		TLS      struct {
 			CaPath   string `yaml:"ca"`
 			CertPath string `yaml:"cert"`

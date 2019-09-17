@@ -47,12 +47,22 @@ type Datum struct {
 }
 
 func createSession(config *Config) (*gocql.Session, error) {
-	cluster := gocql.NewCluster(config.Cassandra.Hosts...)
-	cluster.Port = config.Cassandra.Port
-	cluster.Keyspace = config.Cassandra.Keyspace
+	cassandra := config.Cassandra
+
+	cluster := gocql.NewCluster(cassandra.Hosts...)
+	cluster.Port = cassandra.Port
+	cluster.Keyspace = cassandra.Keyspace
 	cluster.Consistency = gocql.LocalQuorum
 
-	tlsConf := config.Cassandra.TLS
+	// Host selection
+	if cassandra.LocalDC != "" {
+		cluster.PoolConfig.HostSelectionPolicy = gocql.DCAwareRoundRobinPolicy(cassandra.LocalDC)
+	} else {
+		cluster.PoolConfig.HostSelectionPolicy = gocql.RoundRobinHostPolicy()
+	}
+
+	// TLS
+	tlsConf := cassandra.TLS
 
 	if tlsConf.CaPath != "" {
 		cluster.SslOpts = &gocql.SslOptions{
@@ -62,7 +72,8 @@ func createSession(config *Config) (*gocql.Session, error) {
 		cluster.SslOpts.KeyPath = tlsConf.KeyPath
 	}
 
-	authConf := config.Cassandra.Authentication
+	// Authentication
+	authConf := cassandra.Authentication
 
 	if authConf.Username != "" {
 		cluster.Authenticator = gocql.PasswordAuthenticator{
