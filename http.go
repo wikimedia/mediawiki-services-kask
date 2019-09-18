@@ -139,7 +139,7 @@ func (env *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		env.delete(w, r)
 	default:
 		HTTPError(w, BadRequest(r.URL.Path))
-		env.log.RequestID(getRequestID(r)).Log(LogError, "Unsupported HTTP method used: (%s)", r.Method)
+		env.log.RequestID(getRequestID(r)).Log(LogError, "Unsupported HTTP method (%s)", r.Method)
 	}
 }
 

@@ -58,8 +58,15 @@ type ScopedLogger struct {
 
 // Log creates a LogMessage at the specified level.
 func (s *ScopedLogger) Log(level int, format string, v ...interface{}) {
-	message := LogMessage{Msg: fmt.Sprintf(format, v...), RequestID: s.requestID}
-	s.logger.log(level, message)
+	s.logger.log(level, func() LogMessage {
+		return LogMessage{
+			Msg:       fmt.Sprintf(format, v...),
+			Time:      time.Now().Format(time.RFC3339),
+			Appname:   s.logger.serviceName,
+			Level:     LevelString(level),
+			RequestID: s.requestID,
+		}
+	})
 }
 
 // RequestID records the request id and returns a ScopedLogger.
@@ -69,10 +76,10 @@ func (l *Logger) RequestID(id string) *ScopedLogger {
 
 // This is an internal implementation; The application should log messages
 // using one of the level-specific methods, or a ScopedLogger as appropriate.
-// Note: This method is responsible for assigning the Time, Appname, and
-// Level attributes of LogMessage structs, any existing values WILL be
-// overwritten.
-func (l *Logger) log(level int, message LogMessage) {
+// Note: This method accepts a function that returns a LogMessage struct,
+// instead of directly accepting a LogMessage, so that any costly string
+// formatting can occur only if the message will be logged.
+func (l *Logger) log(level int, msg func() LogMessage) {
 	// Level must be one of the constants declared above; We do not allow ad hoc logging levels.
 	if !validLevel(level) {
 		l.Error("Invalid log level specified (%d); This is a bug!", level)
@@ -84,10 +91,7 @@ func (l *Logger) log(level int, message LogMessage) {
 		return
 	}
 
-	// RFC3339 reads like a stricter version of ISO8601
-	message.Time = time.Now().Format(time.RFC3339)
-	message.Appname = l.serviceName
-	message.Level = LevelString(level)
+	message := msg()
 
 	str, err := json.Marshal(message)
 
@@ -101,35 +105,47 @@ func (l *Logger) log(level int, message LogMessage) {
 	l.write(string(str))
 }
 
-// Fatal logs messages of severity CRITICAL.
+// Fatal logs messages of severity FATAL.
 func (l *Logger) Fatal(format string, v ...interface{}) {
-	l.log(LogFatal, LogMessage{Msg: fmt.Sprintf(format, v...)})
+	l.log(LogFatal, l.basicLogMessage(LogFatal, format, v...))
 }
 
 // Error logs messages of severity ERROR.
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.log(LogError, LogMessage{Msg: fmt.Sprintf(format, v...)})
+	l.log(LogError, l.basicLogMessage(LogError, format, v...))
 }
 
 // Warning logs messages of severity WARNING.
 func (l *Logger) Warning(format string, v ...interface{}) {
-	l.log(LogWarning, LogMessage{Msg: fmt.Sprintf(format, v...)})
+	l.log(LogWarning, l.basicLogMessage(LogWarning, format, v...))
 }
 
 // Info logs messages of severity INFO.
 func (l *Logger) Info(format string, v ...interface{}) {
-	l.log(LogInfo, LogMessage{Msg: fmt.Sprintf(format, v...)})
+	l.log(LogInfo, l.basicLogMessage(LogInfo, format, v...))
 }
 
 // Debug logs messages of severity DEBUG.
 func (l *Logger) Debug(format string, v ...interface{}) {
-	l.log(LogDebug, LogMessage{Msg: fmt.Sprintf(format, v...)})
+	l.log(LogDebug, l.basicLogMessage(LogDebug, format, v...))
 }
 
 func (l *Logger) write(s string) {
 	// TODO: Should error handling be added to this? Our io.Writer will likely always be
 	// os.Stdout, what would we do if unable to write to stdout?
 	fmt.Fprintln(l.writer, s)
+}
+
+// This is an (internal) utility method for creating simple LogMessage (functions).
+func (l *Logger) basicLogMessage(level int, format string, v ...interface{}) func() LogMessage {
+	return func() LogMessage {
+		return LogMessage{
+			Msg:     fmt.Sprintf(format, v...),
+			Time:    time.Now().Format(time.RFC3339),
+			Appname: l.serviceName,
+			Level:   LevelString(level),
+		}
+	}
 }
 
 func validLevel(level int) bool {
