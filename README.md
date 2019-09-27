@@ -1,12 +1,12 @@
 kask
 ====
 
-[Kask](https://www.mediawiki.org/wiki/Kask) is a (multi-master) replicated key-value storage service.
+[Kask][wiki page] is a (multi-master) replicated key-value storage service.
 
 ## Building
 
-Dependencies used target what has been shipped in Debian Stretch; To build and
-execute on a Debian:
+Kask's dependencies target packages shipped in Debian Stretch; To build and
+execute on a Debian machine:
 
     $ apt install \
           golang-github-gocql-gocql-dev \
@@ -40,17 +40,23 @@ Startup
 
 ## Using
 
-    $ curl -D - -X POST http://localhost:8080/v1/foo -d 'bar'
+    $ curl -X POST -H 'Content-Type: application/octet-stream' \
+           -d 'sample value' http://api.example.org/sessions/v1/test_key
     HTTP/1.1 201 CREATED
     Content-Type: application/octet-stream
     Date: Tue, 11 Dec 2018 22:50:46 GMT
     Content-Length: 0
-    
-    $ curl -D - -X GET  http://localhost:8080/v1/foo; echo
+
+    $ curl http://api.example.org/sessions/v1/test_key
     HTTP/1.1 200 OK
     Content-Type: application/octet-stream
     Date: Tue, 11 Dec 2018 22:51:10 GMT
     Content-Length: 3
-    
-    bar
-    $
+
+    sample value
+
+## See also
+
+For more information about Kask, see the [wiki page].
+
+[wiki page]: https://www.mediawiki.org/wiki/Kask
