@@ -80,6 +80,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.SetFlags(0)
+	log.SetOutput(logger)
+
 	logger.Info("Initializing Kask %s (Go version: %s, Build host: %s, Timestamp: %s)...", version, runtime.Version(), buildHost, buildDate)
 
 	store, err := NewCassandraStore(config)

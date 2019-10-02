@@ -97,12 +97,12 @@ func (l *Logger) log(level int, msg func() LogMessage) {
 
 	// Handle the (unlikely) case where JSON serialization fails.
 	if err != nil {
-		l.write(fmt.Sprintf(`{"msg": "Error serializing log message: %v (%s)", "appname": "%s"}`, message, err, l.serviceName))
+		l.send(fmt.Sprintf(`{"msg": "Error serializing log message: %v (%s)", "appname": "%s"}`, message, err, l.serviceName))
 		return
 	}
 
 	// Log the messsage to the underlying io.Writer, one message per line.
-	l.write(string(str))
+	l.send(string(str))
 }
 
 // Fatal logs messages of severity FATAL.
@@ -130,7 +130,14 @@ func (l *Logger) Debug(format string, v ...interface{}) {
 	l.log(LogDebug, l.basicLogMessage(LogDebug, format, v...))
 }
 
-func (l *Logger) write(s string) {
+// Write logs messages of severity WARNING.  This method satisfies the io.Writer
+// interface so that Logger instances can be used as output for Golang's log module.
+func (l *Logger) Write(bytes []byte) (int, error) {
+	l.log(LogWarning, l.basicLogMessage(LogWarning, strings.TrimSuffix(string(bytes), "\n")))
+	return len(bytes), nil
+}
+
+func (l *Logger) send(s string) {
 	// TODO: Should error handling be added to this? Our io.Writer will likely always be
 	// os.Stdout, what would we do if unable to write to stdout?
 	fmt.Fprintln(l.writer, s)

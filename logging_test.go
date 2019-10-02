@@ -22,6 +22,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"testing"
 )
 
@@ -110,5 +111,20 @@ func TestLogger(t *testing.T) {
 		AssertEquals(t, LevelString(LogWarning), res.Level, "Wrong log level attribute")
 		AssertEquals(t, "logtest", res.Appname, "Wrong appname attribute")
 		AssertEquals(t, "0000000a-000a-000a-000a-00000000000a", res.RequestID, "Wrong request_id attribute")
+	})
+
+	t.Run("Using log module", func(t *testing.T) {
+		writer, logger := setUp(LogInfo)
+		log.SetFlags(0)
+		log.SetOutput(logger)
+		log.Println("Sent via log module")
+
+		res, err := getLogMessage(writer)
+		if err != nil {
+			t.Fatalf("Unable to deserialize JSON log message: %s", err)
+		}
+
+		AssertEquals(t, "Sent via log module", res.Msg, "Wrong message string attribute")
+		AssertEquals(t, LevelString(LogWarning), res.Level, "Wrong log level attribute")
 	})
 }
