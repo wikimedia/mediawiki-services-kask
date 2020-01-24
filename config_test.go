@@ -45,6 +45,8 @@ cassandra:
   port: 9043
   keyspace: kittens
   table: data
+  query_timeout_ms: 1
+  connect_timeout_ms: 1
   authentication:
     username: myuser
     password: mypass
@@ -67,6 +69,8 @@ cassandra:
 		AssertEquals(t, config.Cassandra.Port, 9043, "Cassandra port number")
 		AssertEquals(t, config.Cassandra.Keyspace, "kittens", "Cassandra keyspace")
 		AssertEquals(t, config.Cassandra.Table, "data", "Cassandra table name")
+		AssertEquals(t, config.Cassandra.QueryTimeout, 1, "Cassandra query timeout")
+		AssertEquals(t, config.Cassandra.ConnectTimeout, 1, "Cassandra connect timeout")
 		AssertEquals(t, config.Cassandra.Authentication.Username, "myuser", "Cassandra username")
 		AssertEquals(t, config.Cassandra.Authentication.Password, "mypass", "Cassandra password")
 		AssertEquals(t, config.Cassandra.TLS.CaPath, "/path/to/ca", "Cassandra TLS CA path name")
@@ -76,6 +80,26 @@ cassandra:
 		t.Errorf("Failed to read configuration data: %v", err)
 	}
 
+}
+
+func TestConfigDefaults(t *testing.T) {
+	if config, err := NewConfig([]byte{}); err == nil {
+		AssertEquals(t, config.ServiceName, "kask", "Service name")
+		AssertEquals(t, config.BaseURI, "/v1/", "URI prefix")
+		AssertEquals(t, config.Address, "localhost", "Bind address")
+		AssertEquals(t, config.Port, 8080, "Port number")
+		AssertEquals(t, config.DefaultTTL, 86400, "TTL value")
+		AssertEquals(t, config.LogLevel, "info", "Log level")
+		AssertEquals(t, len(config.Cassandra.Hosts), 1, "Number of Cassandra hostnames")
+		AssertEquals(t, config.Cassandra.Hosts[0], "localhost", "Number of Cassandra hostnames")
+		AssertEquals(t, config.Cassandra.Port, 9042, "Cassandra port number")
+		AssertEquals(t, config.Cassandra.Keyspace, "kask", "Cassandra keyspace")
+		AssertEquals(t, config.Cassandra.Table, "values", "Cassandra table name")
+		AssertEquals(t, config.Cassandra.QueryTimeout, 12000, "Cassandra query timeout")
+		AssertEquals(t, config.Cassandra.ConnectTimeout, 5000, "Cassandra connect timeout")
+	} else {
+		t.Errorf("Failed to initialize default configuration: %v", err)
+	}
 }
 
 func TestNegativeTTL(t *testing.T) {

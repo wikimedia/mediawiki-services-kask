@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -84,6 +85,13 @@ func main() {
 	log.SetOutput(logger)
 
 	logger.Info("Initializing Kask %s (Go version: %s, Build host: %s, Timestamp: %s)...", version, runtime.Version(), buildHost, buildDate)
+
+	logger.Debug("Cassandra host(s): %s", strings.Join(config.Cassandra.Hosts, ", "))
+	logger.Debug("Cassandra port: %d", config.Cassandra.Port)
+	logger.Debug("Cassandra keyspace: %s", config.Cassandra.Keyspace)
+	logger.Debug("Cassandra table: %s", config.Cassandra.Table)
+	logger.Debug("Cassandra connect timeout: %dms", config.Cassandra.ConnectTimeout)
+	logger.Debug("Cassandra query timeout: %dms", config.Cassandra.QueryTimeout)
 
 	store, err := NewCassandraStore(config)
 	if err != nil {

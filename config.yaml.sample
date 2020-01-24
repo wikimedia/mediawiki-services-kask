@@ -55,6 +55,10 @@ cassandra:
   table:    values
   # The data-center local to this endpoint
   local_dc: datacenter1
+  # Cassandra query timeout in milliseconds (defaults to 12000)
+  query_timeout_ms: 12000
+  # Cassandra connection timeout in milliseconds (defaults to 5000)
+  connect_timeout_ms: 5000
   # Password authentication (optional)
   authentication:
     username: jsmith

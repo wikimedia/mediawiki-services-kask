@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gocql/gocql"
 )
@@ -53,6 +54,12 @@ func createSession(config *Config) (*gocql.Session, error) {
 	cluster.Port = cassandra.Port
 	cluster.Keyspace = cassandra.Keyspace
 	cluster.Consistency = gocql.LocalQuorum
+
+	queryTimeout, _ := time.ParseDuration(fmt.Sprintf("%dms", cassandra.QueryTimeout))
+	connectTimeout, _ := time.ParseDuration(fmt.Sprintf("%dms", cassandra.ConnectTimeout))
+
+	cluster.Timeout = queryTimeout
+	cluster.ConnectTimeout = connectTimeout
 
 	// Host selection
 	if cassandra.LocalDC != "" {

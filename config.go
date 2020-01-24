@@ -41,12 +41,14 @@ type Config struct {
 	}
 
 	Cassandra struct {
-		Hosts    []string `yaml:"hosts"`
-		Port     int      `yaml:"port"`
-		Keyspace string   `yaml:"keyspace"`
-		Table    string   `yaml:"table"`
-		LocalDC  string   `yaml:"local_dc"`
-		TLS      struct {
+		Hosts          []string `yaml:"hosts"`
+		Port           int      `yaml:"port"`
+		Keyspace       string   `yaml:"keyspace"`
+		Table          string   `yaml:"table"`
+		LocalDC        string   `yaml:"local_dc"`
+		QueryTimeout   int      `yaml:"query_timeout_ms"`
+		ConnectTimeout int      `yaml:"connect_timeout_ms"`
+		TLS            struct {
 			CaPath   string `yaml:"ca"`
 			CertPath string `yaml:"cert"`
 			KeyPath  string `yaml:"key"`
@@ -82,6 +84,8 @@ func NewConfig(data []byte) (*Config, error) {
 	config.Cassandra.Port = 9042
 	config.Cassandra.Keyspace = "kask"
 	config.Cassandra.Table = "values"
+	config.Cassandra.QueryTimeout = 12000
+	config.Cassandra.ConnectTimeout = 5000
 
 	err := yaml.Unmarshal(data, &config)
 	if err != nil {
