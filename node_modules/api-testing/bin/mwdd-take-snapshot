@@ -1,0 +1,55 @@
+#!/bin/bash
+set -eu
+
+if [ -z "$1" ]; then
+  echo "USAGE: $0 <name.tar> [db] [host]"
+  echo "SYNOPSIS: Creates a snapshot of the content of a wiki."
+  exit 1
+fi
+
+
+tgt=${1}
+db=${2:-default}
+host=${3:-db-master}
+temp=`mktemp -d`
+dir=`dirname "$0"`
+env="$dir/local.env"
+
+. "$env"
+
+if [ -z "$MWDD_DIR" ]; then
+  echo "MWDD_DIR not set in $env!"
+  exit 2
+fi
+
+dddir="$dir/$MWDD_DIR"
+if [ ! -d "$dddir" ]; then
+  echo "Directory $dddir not found, adjust MWDD_DIR in $env!"
+  exit 2
+fi
+
+if [ -e "$tgt" ]; then
+  echo "Target exists: $tgt!"
+  exit 2
+fi
+
+if [ -z "$temp" ]; then
+  # Make sure $temp is set, since we call rm -rf on it later!
+  echo "Can't create temporary directory!"
+  exit 23
+fi
+
+echo "Dumping $host:$db to $tgt"
+
+# remember which database the snapshot was taken for.
+echo "$db" > "$temp/database.name"
+
+# create an SQL dump
+sqlargs="--default-character-set=binary --opt --user=root --password=toor"
+( cd "$dddir"; docker-compose exec -T "$host" mysqldump $sqlargs "$db" ) | bzip2 -c > "$temp/mediawiki.sql.bz2"
+
+# tar the snapshot
+( cd "$temp"; tar -c * ) > "$tgt"
+
+rm -rf "$temp"
+echo "done."
