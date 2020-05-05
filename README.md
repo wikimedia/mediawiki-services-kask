@@ -26,6 +26,15 @@ execute on a Debian machine:
 
     $ make GOTEST_ARGS="-bench=. -benchmem" test
 
+#### Experimental integration tests
+
+This branch includes experimental support for Javascript integration
+tests using a [nodejs module](https://github.com/eevans/api-testing).
+
+    $ TEST_URL=http://localhost:8080/v1 node_modules/api-testing/bin/runner .api-testing.yaml quick
+    All good (4/4 tests passed)
+
+
 *NOTE: `config.yaml.test` is excluded from version control and is recommended for local configuration.*
 
 ## Running

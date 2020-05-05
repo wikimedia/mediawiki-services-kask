@@ -1,0 +1,21 @@
+#!/usr/bin/env nodejs
+
+const Runner  = require('../index').Runner;
+const fs      = require('fs');
+const yaml    = require('js-yaml');
+
+
+const {argv, exit} = process;
+
+if (argv.length !== 4) {
+    console.log(`Usage: ${argv[1]} <config> <label>`);
+    exit(1);
+}
+
+const [fname, label] = argv.slice(2,4);
+const config = yaml.safeLoad(fs.readFileSync(fname, 'utf8'));
+
+
+new Runner(config).run(label, (numFailed) => {
+    process.exitCode = numFailed ? 1 : 0;
+});

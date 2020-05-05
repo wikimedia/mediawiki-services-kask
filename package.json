@@ -1,0 +1,5 @@
+{
+    "devDependencies": {
+        "api-testing": "eevans/api-testing.git#master"
+    }
+}

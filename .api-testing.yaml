@@ -1,0 +1,11 @@
+crud: &crud
+  paths:
+    - ./test.js
+  # See: https://mochajs.org/#reporters for a list of built-in reporters
+  reporter: list
+  env:
+    TEST_URL: http://localhost:8080/v1
+
+quick:
+  <<: *crud
+  reporter: nrpe
