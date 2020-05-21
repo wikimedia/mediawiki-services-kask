@@ -29,7 +29,7 @@ GO_LDFLAGS += -X main.buildHost=$(if $(HOSTNAME),$(HOSTNAME),unknown)
 
 
 build:
-	GOPATH=$(GOPATH) go build -ldflags "$(GO_LDFLAGS)" kask.go config.go http.go logging.go storage.go
+	GOPATH=$(GOPATH) go build -ldflags "$(GO_LDFLAGS)" -tags "gocql_debug" kask.go config.go http.go logging.go storage.go
 
 	@echo
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
