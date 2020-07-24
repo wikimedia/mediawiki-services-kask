@@ -1,0 +1,35 @@
+pipelines:
+  test:
+    blubberfile: blubber.yaml
+    stages:
+      - name: test
+      - name: candidate
+        build: production
+
+  rehearse:
+    blubberfile: blubber.yaml
+    stages:
+      - name: test
+      - name: candidate
+        build: production
+        publish:
+          image: true
+      - name: rehearsal
+        deploy:
+          chart: https://releases.wikimedia.org/charts/kask-0.0.11.tgz
+          image: '${candidate.imageName}'
+          tag: '${candidate.imageTag}'
+          overrides:
+            subcharts:
+              cassandra: true
+          test: true
+
+  publish:
+    blubberfile: blubber.yaml
+    stages:
+      - name: production
+        build: production
+        publish:
+          image:
+            id: '${.imageID}'
+            tags: [stable]

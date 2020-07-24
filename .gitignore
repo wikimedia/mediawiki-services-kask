@@ -1,6 +1,6 @@
 *~
 kask
-config.yaml
+./config.yaml
 config.yaml.test
 devscripts/
 prometheus.yml
