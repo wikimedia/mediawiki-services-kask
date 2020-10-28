@@ -1,5 +1,5 @@
 version: v4
-base: docker-registry.wikimedia.org/wikimedia-stretch:latest
+base: docker-registry.wikimedia.org/wikimedia-buster:latest
 lives:
   in: /go/src/gerrit.wikimedia.org/r/mediawiki/services/kask
 
