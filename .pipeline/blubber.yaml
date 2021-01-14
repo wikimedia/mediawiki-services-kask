@@ -1,11 +1,11 @@
 version: v4
-base: docker-registry.wikimedia.org/wikimedia-stretch:latest
+base: docker-registry.wikimedia.org/wikimedia-buster:latest
 lives:
   in: /go/src/gerrit.wikimedia.org/r/mediawiki/services/kask
 
 variants:
   build:
-    base: docker-registry.wikimedia.org/golang:1.11.5-1
+    base: docker-registry.wikimedia.org/golang:1.13-3-s1
     copies: [local]
     apt:
       packages:
