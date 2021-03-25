@@ -23,4 +23,4 @@ pipelines:
         publish:
           image:
             id: '${.imageID}'
-            tags: [stable]
+            tags: [stable, '${setup.tag}']
