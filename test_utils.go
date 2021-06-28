@@ -26,6 +26,7 @@ import (
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
+//init seeds the random number generator
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
