@@ -1,13 +1,18 @@
 version: v4
-base: docker-registry.wikimedia.org/wikimedia-buster:latest
+base: docker-registry.wikimedia.org/bullseye:latest
 lives:
   in: /go/src/gerrit.wikimedia.org/r/mediawiki/services/kask
 
 variants:
   build:
-    base: docker-registry.wikimedia.org/golang:1.13-3-s1
+    base: docker-registry.wikimedia.org/golang1.19:latest
     copies: [local]
     apt:
+      sources:
+        - url: https://apt.wikimedia.org/wikimedia
+          distribution: bullseye-wikimedia
+          components:
+            - component/gocql
       packages:
         - make
         - golang-github-gocql-gocql-dev

@@ -29,7 +29,7 @@ GO_LDFLAGS += -X main.buildHost=$(if $(HOSTNAME),$(HOSTNAME),unknown)
 
 
 build:
-	GOPATH=$(GOPATH) go build -ldflags "$(GO_LDFLAGS)" kask.go config.go http.go logging.go storage.go
+	GO111MODULE=off GOPATH=$(GOPATH) go build -ldflags "$(GO_LDFLAGS)" kask.go config.go http.go logging.go storage.go
 
 	@echo
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -40,13 +40,13 @@ build:
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 functional-test: build
-	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=functional -config $(CONFIG)
+	GO111MODULE=off GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=functional -config $(CONFIG)
 
 unit-test: build
-	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=unit
+	GO111MODULE=off GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=unit
 
 integration-test: build
-	GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=integration -config $(CONFIG)
+	GO111MODULE=off GOPATH=$(GOPATH) go test $(GOTEST_ARGS) -tags=integration -config $(CONFIG)
 
 check:
 	@if [ -n "`goimports -l *.go`" ]; then \
@@ -58,7 +58,7 @@ check:
 	    false; \
 	fi
 	golint -set_exit_status $(GO_PACKAGES)
-	go vet $(GO_PACKAGES)
+	GO111MODULE=off GOPATH=$(GOPATH) go vet *.go
 
 test: unit-test check
 
